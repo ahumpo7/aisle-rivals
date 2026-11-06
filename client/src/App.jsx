@@ -320,6 +320,7 @@ export default function App() {
             room={room}
             player={player}
             onJoinSuccess={handleJoinSuccess}
+            onLeaveRoom={handleLeaveToMainMenu}
           />
         ) : (
           <GameView

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Copy, Check, QrCode, Play, Users, Sparkles, ArrowRight, RefreshCw, ShoppingCart, Heart, Globe } from 'lucide-react';
+import { Copy, Check, QrCode, Play, Users, Sparkles, ArrowRight, ArrowLeft, RefreshCw, ShoppingCart, Heart, Globe, Home } from 'lucide-react';
 import socket from '../utils/socket';
 import { sounds } from '../utils/audio';
 
 const AVATARS = ['🦊', '🐼', '🐯', '🐰', '🐶', '🦄', '🐱', '🐻', '🐨', '🦁', '🐸', '🐧'];
 
-export default function Lobby({ room, player, onJoinSuccess }) {
+export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
   const [mode, setMode] = useState('create');
   const [name, setName] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState('🦊');
@@ -134,7 +134,24 @@ export default function Lobby({ room, player, onJoinSuccess }) {
     const bothReady = playersList.length === 2;
 
     return (
-      <div className="max-w-md mx-auto p-4 space-y-6">
+      <div className="max-w-md mx-auto p-4 space-y-5">
+        {/* Top Back Action */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => {
+              if (window.confirm('Leave this room and return to main menu?')) {
+                onLeaveRoom?.();
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700/80 transition active:scale-95"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to Main Menu
+          </button>
+          <span className="text-xs text-amber-400 font-mono font-bold bg-slate-800 px-2 py-1 rounded-lg border border-slate-700">
+            Room: {room.roomCode}
+          </span>
+        </div>
+
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-sm font-medium border border-blue-500/30">

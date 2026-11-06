@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Trophy, CheckCircle2, Clock, AlertCircle, Camera, Sparkles, Plus, 
   Volume2, VolumeX, Eye, ArrowRight, ShieldCheck, Flame, Bell, MessageSquare,
-  RefreshCw, Shuffle, MoreVertical, Flag, RotateCcw, Home, X
+  RefreshCw, Shuffle, MoreVertical, Flag, RotateCcw, Home, X, Menu
 } from 'lucide-react';
 import { sounds } from '../utils/audio';
 
@@ -86,7 +86,7 @@ export default function GameView({
           <span className="text-emerald-400 font-medium">Race to {targetWins}!</span>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <button
             onClick={toggleMute}
             className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition"
@@ -103,10 +103,10 @@ export default function GameView({
           </button>
           <button
             onClick={() => setShowMenuModal(true)}
-            className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition"
-            title="Game Options"
+            className="px-2.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow transition"
           >
-            <MoreVertical className="w-4 h-4" />
+            <Menu className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>MENU</span>
           </button>
         </div>
       </div>
@@ -407,6 +407,17 @@ export default function GameView({
             </div>
           );
         })}
+      </div>
+
+      {/* Bottom Game Controls Bar */}
+      <div className="pt-3 pb-6">
+        <button
+          onClick={() => setShowMenuModal(true)}
+          className="w-full py-3.5 px-4 rounded-2xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700/80 text-slate-200 hover:text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition active:scale-98"
+        >
+          <Menu className="w-4 h-4 text-amber-400" />
+          <span>Game Options (End Match • Rematch • Main Menu)</span>
+        </button>
       </div>
 
       {/* Game Options Menu Modal */}
