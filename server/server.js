@@ -231,6 +231,10 @@ io.on('connection', (socket) => {
 
   // Submit Item Proof
   socket.on('submit_item', ({ roomCode, playerId, promptId, photoUrl, caption }, callback) => {
+    if (roomCode) {
+      socket.join(roomCode.toUpperCase());
+      gameManager.setPlayerSocket(roomCode, playerId, socket.id);
+    }
     const result = gameManager.submitItemProof(roomCode, playerId, promptId, photoUrl, caption);
     if (result.error) {
       if (callback) callback({ success: false, error: result.error });
@@ -253,6 +257,9 @@ io.on('connection', (socket) => {
 
   // Verify Item Proof (Approve / Reject)
   socket.on('verify_item', ({ roomCode, reviewerId, targetPlayerId, promptId, approved, feedback }, callback) => {
+    if (roomCode) {
+      socket.join(roomCode.toUpperCase());
+    }
     const result = gameManager.verifyItemProof(
       roomCode,
       reviewerId,
@@ -267,8 +274,16 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // Broadcast room update to the room
     io.to(roomCode.toUpperCase()).emit('room_updated', result.room);
 
+    // Also explicitly emit to targetPlayer's socket if connected
+    const targetSocketId = result.targetPlayer.socketId;
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('room_updated', result.room);
+    }
+
+    // Emit verification result WITH updated room included
     io.to(roomCode.toUpperCase()).emit('item_verification_result', {
       reviewerName: result.reviewer.name,
       targetPlayerName: result.targetPlayer.name,
@@ -277,7 +292,8 @@ io.on('connection', (socket) => {
       approved,
       feedback,
       points: approved ? result.submission.pointsEarned : 0,
-      title: result.submission.promptTitle
+      title: result.submission.promptTitle,
+      room: result.room
     });
 
     if (result.room.status === 'completed') {

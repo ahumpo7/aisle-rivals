@@ -17,26 +17,64 @@ export default function App() {
   const [floatingReactions, setFloatingReactions] = useState([]);
   const [toastNotification, setToastNotification] = useState(null);
 
-  // Reconnection logic from localStorage
+  // Sync state & automatic reconnection (runs on connect, tab focus, or camera return)
   useEffect(() => {
-    const savedRoomCode = localStorage.getItem('aisle_rivals_room');
-    const savedPlayerId = localStorage.getItem('aisle_rivals_player');
+    const syncState = () => {
+      const savedRoomCode = localStorage.getItem('aisle_rivals_room');
+      const savedPlayerId = localStorage.getItem('aisle_rivals_player');
 
-    if (savedRoomCode && savedPlayerId) {
-      socket.emit('reconnect_player', {
-        roomCode: savedRoomCode,
-        playerId: savedPlayerId
-      }, (res) => {
-        if (res?.success) {
-          setRoom(res.room);
-          setPlayerId(savedPlayerId);
-        } else {
-          localStorage.removeItem('aisle_rivals_room');
-          localStorage.removeItem('aisle_rivals_player');
-        }
-      });
-    }
+      if (savedRoomCode && savedPlayerId) {
+        socket.emit('reconnect_player', {
+          roomCode: savedRoomCode,
+          playerId: savedPlayerId
+        }, (res) => {
+          if (res?.success && res.room) {
+            setRoom(res.room);
+            setPlayerId(savedPlayerId);
+          }
+        });
+      }
+    };
+
+    socket.on('connect', syncState);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        syncState();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', syncState);
+
+    // Initial check
+    syncState();
+
+    return () => {
+      socket.off('connect', syncState);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', syncState);
+    };
   }, []);
+
+  // Background heartbeat during active games to ensure both phones are 100% in sync
+  useEffect(() => {
+    if (!room?.roomCode || !playerId) return;
+
+    const interval = setInterval(() => {
+      if (room.status === 'in_progress') {
+        socket.emit('reconnect_player', {
+          roomCode: room.roomCode,
+          playerId
+        }, (res) => {
+          if (res?.success && res.room) {
+            setRoom(res.room);
+          }
+        });
+      }
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, [room?.roomCode, room?.status, playerId]);
 
   // Socket event listeners
   useEffect(() => {
@@ -83,8 +121,11 @@ export default function App() {
       showToast(`🚨 ${data.playerName} found "${data.promptTitle}"! Tap to inspect!`);
     };
 
-    // Item verification result
+    // Item verification result (updates room directly!)
     const handleVerificationResult = (data) => {
+      if (data.room) {
+        setRoom(data.room);
+      }
       if (data.approved) {
         sounds.playApproved();
         showToast(`✅ ${data.reviewerName} approved ${data.targetPlayerName}'s find (+${data.points} pts)!`);
@@ -104,7 +145,7 @@ export default function App() {
     const handleLiveReaction = (data) => {
       sounds.playDing();
       const reactionId = Date.now() + Math.random();
-      const randomLeft = 20 + Math.random() * 60; // 20% to 80% screen width
+      const randomLeft = 20 + Math.random() * 60;
       const newReaction = {
         id: reactionId,
         emoji: data.emoji,
@@ -152,6 +193,10 @@ export default function App() {
       promptId,
       photoUrl,
       caption
+    }, (res) => {
+      if (res?.success && res.room) {
+        setRoom(res.room);
+      }
     });
   };
 
@@ -162,7 +207,8 @@ export default function App() {
       playerId,
       promptId
     }, (res) => {
-      if (res?.success) {
+      if (res?.success && res.room) {
+        setRoom(res.room);
         showToast(`🔄 Replaced with: "${res.newPrompt.title}"!`);
       } else {
         showToast(res?.error || 'Could not swap item');
@@ -180,6 +226,10 @@ export default function App() {
       promptId,
       approved,
       feedback
+    }, (res) => {
+      if (res?.success && res.room) {
+        setRoom(res.room);
+      }
     });
     setPendingVerificationRequest(null);
   };
@@ -199,6 +249,10 @@ export default function App() {
       roomCode: room.roomCode,
       playerId,
       promptData
+    }, (res) => {
+      if (res?.success && res.room) {
+        setRoom(res.room);
+      }
     });
   };
 
