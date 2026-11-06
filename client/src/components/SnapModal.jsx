@@ -1,10 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Image as ImageIcon, X, CheckCircle2, AlertCircle, Clock, Send, Sparkles, MapPin, ShieldAlert, ArrowLeft } from 'lucide-react';
+import { Camera, Image as ImageIcon, X, CheckCircle2, AlertCircle, Clock, Send, Sparkles, MapPin, ShieldAlert, ArrowLeft, RefreshCw } from 'lucide-react';
 import { compressImage } from '../utils/imageCompressor';
 import { sounds } from '../utils/audio';
 
 export default function SnapModal({ prompt, player, opponent, onClose, onSubmitProof, onSwapPrompt }) {
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [caption, setCaption] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -14,6 +14,18 @@ export default function SnapModal({ prompt, player, opponent, onClose, onSubmitP
   const galleryInputRef = useRef(null);
 
   const existingSubmission = player?.submissions?.[prompt.id];
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    sounds.playDing();
+    setError('');
+    // Instant 0ms preview with URL.createObjectURL
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+    setSelectedFile(file);
+  };
 
   const handleSwapThisPrompt = () => {
     if (window.confirm("Don't like this challenge? Swap it for another one from the deck?")) {
@@ -26,26 +38,8 @@ export default function SnapModal({ prompt, player, opponent, onClose, onSubmitP
     }
   };
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      sounds.playDing();
-      setError('');
-      // Compress image for lightning fast mobile uploads
-      const compressedBlob = await compressImage(file, 1200, 0.78);
-      setSelectedImage(compressedBlob);
-      const previewUrl = URL.createObjectURL(compressedBlob);
-      setImagePreview(previewUrl);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to process image from camera. Please try again.');
-    }
-  };
-
   const handleSubmit = async () => {
-    if (!selectedImage) {
+    if (!selectedFile) {
       setError('Please take or choose a photo first!');
       return;
     }
@@ -55,9 +49,11 @@ export default function SnapModal({ prompt, player, opponent, onClose, onSubmitP
       setError('');
       sounds.playDing();
 
-      // Upload via FormData
+      // Compress off-thread before sending
+      const compressedBlob = await compressImage(selectedFile, 1100, 0.72);
+
       const formData = new FormData();
-      formData.append('photo', selectedImage, `snap-${prompt.id}.jpg`);
+      formData.append('photo', compressedBlob, `snap-${prompt.id}.jpg`);
 
       const res = await fetch('/api/upload', {
         method: 'POST',
@@ -69,12 +65,11 @@ export default function SnapModal({ prompt, player, opponent, onClose, onSubmitP
         throw new Error(data.error || 'Failed to upload photo');
       }
 
-      // Submit through socket
       onSubmitProof(prompt.id, data.url, caption);
       onClose();
     } catch (err) {
       console.error(err);
-      setError(err.message || 'Submission failed. Check your internet connection.');
+      setError(err.message || 'Submission failed. Check your connection.');
       setIsSubmitting(false);
     }
   };
@@ -148,7 +143,7 @@ export default function SnapModal({ prompt, player, opponent, onClose, onSubmitP
                 <span>
                   {existingSubmission.status === 'approved' && `Verified by ${existingSubmission.reviewedBy || 'Partner'}! (+${existingSubmission.pointsEarned} pts)`}
                   {existingSubmission.status === 'rejected' && `Rejected by ${existingSubmission.reviewedBy || 'Partner'}! You can retake it below.`}
-                  {existingSubmission.status === 'pending' && `Proof submitted! Waiting for ${opponent?.name || 'partner'} to verify.`}
+                  {existingSubmission.status === 'pending' && `In Approval Queue! Waiting for ${opponent?.name || 'partner'} to verify.`}
                 </span>
               </div>
               {existingSubmission.feedback && (
@@ -182,7 +177,7 @@ export default function SnapModal({ prompt, player, opponent, onClose, onSubmitP
                   <button
                     onClick={() => {
                       setImagePreview(null);
-                      setSelectedImage(null);
+                      setSelectedFile(null);
                     }}
                     className="absolute top-3 right-3 p-1.5 rounded-full bg-slate-900/80 text-slate-200 hover:text-white backdrop-blur border border-slate-700"
                   >
@@ -272,7 +267,7 @@ export default function SnapModal({ prompt, player, opponent, onClose, onSubmitP
                   className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 text-slate-950 font-black text-sm shadow-xl flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition disabled:opacity-50"
                 >
                   {isSubmitting ? (
-                    'Uploading & Sending to Partner...'
+                    'Compressing & Sending Proof...'
                   ) : (
                     <>
                       <Send className="w-4 h-4" /> Send Proof to {opponent?.name || 'Partner'}!

@@ -258,7 +258,35 @@ export default function App() {
 
   const handleRematch = () => {
     if (!room) return;
-    socket.emit('reset_game', { roomCode: room.roomCode });
+    socket.emit('reset_game', { roomCode: room.roomCode }, (res) => {
+      if (res?.success && res.room) {
+        setRoom(res.room);
+      }
+    });
+  };
+
+  const handleEndGameEarly = () => {
+    if (!room || !playerId) return;
+    socket.emit('end_game_early', {
+      roomCode: room.roomCode,
+      playerId
+    }, (res) => {
+      if (res?.success && res.room) {
+        setRoom(res.room);
+      }
+    });
+  };
+
+  const handleLeaveToMainMenu = () => {
+    if (room?.roomCode && playerId) {
+      socket.emit('leave_room', { roomCode: room.roomCode, playerId });
+    }
+    localStorage.removeItem('aisle_rivals_room');
+    localStorage.removeItem('aisle_rivals_player');
+    setRoom(null);
+    setPlayerId(null);
+    setSelectedPrompt(null);
+    setPendingVerificationRequest(null);
   };
 
   const player = room?.players?.[playerId];
@@ -304,6 +332,9 @@ export default function App() {
             onSendReaction={handleSendReaction}
             onOpenAddPrompt={() => setShowAddPrompt(true)}
             onSwapPrompt={handleSwapPrompt}
+            onEndGameEarly={handleEndGameEarly}
+            onRematch={handleRematch}
+            onLeaveToMainMenu={handleLeaveToMainMenu}
           />
         )}
       </main>
@@ -343,6 +374,7 @@ export default function App() {
           room={room}
           player={player}
           onRematch={handleRematch}
+          onLeaveToMainMenu={handleLeaveToMainMenu}
         />
       )}
     </div>

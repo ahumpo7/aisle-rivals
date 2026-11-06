@@ -1,52 +1,80 @@
-// Client-side image compression to speed up photo uploads over mobile networks
+// High-performance image compression using hardware-accelerated createImageBitmap & Canvas
 
-export function compressImage(file, maxDimension = 1200, quality = 0.75) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+export async function compressImage(file, maxDimension = 1100, quality = 0.72) {
+  if (!file) return null;
 
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        let { width, height } = img;
+  // Modern browsers: hardware-accelerated createImageBitmap (off-thread decoding)
+  if (typeof createImageBitmap !== 'undefined') {
+    try {
+      const bitmap = await createImageBitmap(file);
+      let { width, height } = bitmap;
 
-        if (width > maxDimension || height > maxDimension) {
-          if (width > height) {
-            height = Math.round((height * maxDimension) / width);
-            width = maxDimension;
-          } else {
-            width = Math.round((width * maxDimension) / height);
-            height = maxDimension;
-          }
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        } else {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
         }
+      }
 
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(bitmap, 0, 0, width, height);
+      bitmap.close();
 
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Convert to Blob
+      return await new Promise((resolve) => {
         canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              resolve(blob);
-            } else {
-              // Fallback to data URL
-              const dataUrl = canvas.toDataURL('image/jpeg', quality);
-              resolve(dataUrl);
-            }
-          },
+          (blob) => resolve(blob || file),
           'image/jpeg',
           quality
         );
-      };
+      });
+    } catch (err) {
+      console.warn('createImageBitmap failed, falling back to Image object', err);
+    }
+  }
 
-      img.onerror = (err) => reject(err);
-      img.src = event.target.result;
+  // Fast fallback using object URLs instead of slow FileReader dataURLs
+  return new Promise((resolve) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let { width, height } = img;
+
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        } else {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => resolve(blob || file),
+        'image/jpeg',
+        quality
+      );
     };
 
-    reader.onerror = (err) => reject(err);
-    reader.readAsDataURL(file);
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file); // fallback to original file if decode fails
+    };
+
+    img.src = objectUrl;
   });
 }

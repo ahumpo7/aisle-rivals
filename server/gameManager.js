@@ -355,6 +355,32 @@ class GameManager {
 
     return { room };
   }
+
+  endGameEarly(roomCode, requesterId) {
+    const room = this.getRoom(roomCode);
+    if (!room) return { error: 'Room not found' };
+    const requester = room.players[requesterId];
+
+    const playersList = Object.values(room.players);
+    let topPlayer = playersList[0];
+    for (const p of playersList) {
+      if (p.score > (topPlayer?.score || 0)) {
+        topPlayer = p;
+      }
+    }
+
+    room.status = 'completed';
+    room.completedAt = Date.now();
+    room.winner = topPlayer;
+    room.activityLog.push({
+      id: uuidv4(),
+      type: 'game_ended_early',
+      message: `🏁 ${requester ? requester.name : 'Match'} ended the hunt early! ${topPlayer ? topPlayer.name + ' wins!' : ''}`,
+      timestamp: Date.now()
+    });
+
+    return { room };
+  }
 }
 
 module.exports = new GameManager();

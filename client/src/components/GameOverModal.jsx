@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
-import { Trophy, Crown, Sparkles, RotateCcw, Heart, Share2, CheckCircle2 } from 'lucide-react';
+import { Trophy, Crown, Sparkles, RotateCcw, Heart, Share2, CheckCircle2, Home } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { sounds } from '../utils/audio';
 
-export default function GameOverModal({ room, player, onRematch }) {
+export default function GameOverModal({ room, player, onRematch, onLeaveToMainMenu }) {
   const winner = room?.winner;
   const isWinner = winner?.id === player?.id;
   const playersList = Object.values(room?.players || {});
@@ -157,12 +157,18 @@ export default function GameOverModal({ room, player, onRematch }) {
           </div>
 
           {/* Action Buttons */}
-          <div className="pt-3">
+          <div className="pt-3 flex gap-2">
             <button
               onClick={onRematch}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 text-white font-extrabold text-sm shadow-xl flex items-center justify-center gap-2 active:scale-95 transition"
+              className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 text-white font-extrabold text-sm shadow-xl flex items-center justify-center gap-2 active:scale-95 transition"
             >
-              <RotateCcw className="w-4 h-4" /> Start Rematch / Next Round!
+              <RotateCcw className="w-4 h-4" /> Start Rematch!
+            </button>
+            <button
+              onClick={onLeaveToMainMenu}
+              className="py-3.5 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm border border-slate-700 active:scale-95 transition flex items-center gap-1.5"
+            >
+              <Home className="w-4 h-4" /> Main Menu
             </button>
           </div>
         </div>

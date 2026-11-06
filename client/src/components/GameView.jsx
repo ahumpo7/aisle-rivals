@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Trophy, CheckCircle2, Clock, AlertCircle, Camera, Sparkles, Plus, 
   Volume2, VolumeX, Eye, ArrowRight, ShieldCheck, Flame, Bell, MessageSquare,
-  RefreshCw, Shuffle
+  RefreshCw, Shuffle, MoreVertical, Flag, RotateCcw, Home, X
 } from 'lucide-react';
 import { sounds } from '../utils/audio';
 
@@ -17,10 +17,14 @@ export default function GameView({
   pendingVerificationRequest,
   onSendReaction,
   onOpenAddPrompt,
-  onSwapPrompt
+  onSwapPrompt,
+  onEndGameEarly,
+  onRematch,
+  onLeaveToMainMenu
 }) {
-  const [filter, setFilter] = useState('all'); // 'all', 'todo', 'completed'
+  const [filter, setFilter] = useState('all');
   const [showLogDrawer, setShowLogDrawer] = useState(false);
+  const [showMenuModal, setShowMenuModal] = useState(false);
   const [muted, setMuted] = useState(false);
   const [swappingId, setSwappingId] = useState(null);
 
@@ -33,6 +37,14 @@ export default function GameView({
   const targetWins = room?.targetWins || 8;
   const mySubmissions = player?.submissions || {};
   const oppSubmissions = opponent?.submissions || {};
+
+  // Extract my pending approval queue
+  const pendingQueue = Object.entries(mySubmissions)
+    .filter(([_, sub]) => sub.status === 'pending')
+    .map(([promptId, sub]) => {
+      const prompt = prompts.find((p) => p.id === promptId);
+      return { promptId, prompt, ...sub };
+    });
 
   // Filter prompts
   const filteredPrompts = prompts.filter((p) => {
@@ -50,7 +62,7 @@ export default function GameView({
   const oppApprovedCount = Object.values(oppSubmissions).filter((s) => s.status === 'approved').length;
 
   const handleSwapClick = (e, promptId) => {
-    e.stopPropagation(); // Don't trigger open snap modal
+    e.stopPropagation();
     if (swappingId) return;
 
     if (window.confirm("Don't like this item? Swap it for a fresh one from the deck?")) {
@@ -64,7 +76,7 @@ export default function GameView({
 
   return (
     <div className="max-w-md mx-auto p-3 sm:p-4 pb-24 space-y-4">
-      {/* Top Bar */}
+      {/* Top Bar with Options Menu */}
       <div className="flex items-center justify-between text-xs text-slate-400">
         <div className="flex items-center gap-2">
           <span className="font-mono font-bold text-amber-400 bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700">
@@ -88,6 +100,13 @@ export default function GameView({
           >
             <Bell className="w-4 h-4 text-amber-400" />
             <span>Feed</span>
+          </button>
+          <button
+            onClick={() => setShowMenuModal(true)}
+            className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition"
+            title="Game Options"
+          >
+            <MoreVertical className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -145,6 +164,60 @@ export default function GameView({
           </div>
         </div>
       </div>
+
+      {/* Awaiting Partner Approval Queue Section */}
+      {pendingQueue.length > 0 && (
+        <div className="bg-amber-500/10 border-2 border-amber-400/40 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-black uppercase text-amber-300 tracking-wider">
+              <Clock className="w-4 h-4 text-amber-400 animate-spin" />
+              <span>Awaiting Approval Queue ({pendingQueue.length})</span>
+            </div>
+            <span className="text-[10px] text-amber-400 font-medium bg-amber-400/20 px-2 py-0.5 rounded-full">
+              Sent to {opponent?.name || 'Partner'}
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {pendingQueue.map((item) => (
+              <div
+                key={item.promptId}
+                onClick={() => item.prompt && onOpenSnapModal(item.prompt)}
+                className="bg-slate-900/80 border border-amber-400/30 rounded-xl p-2.5 flex items-center justify-between gap-3 cursor-pointer hover:border-amber-400/60 transition"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {item.photoUrl ? (
+                    <img
+                      src={item.photoUrl}
+                      alt="submission"
+                      className="w-11 h-11 rounded-lg object-cover bg-black border border-slate-700 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-11 h-11 rounded-lg bg-slate-800 flex items-center justify-center text-xl shrink-0">
+                      {item.promptIcon || '📸'}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-white truncate">
+                      {item.promptTitle || item.prompt?.title}
+                    </div>
+                    <div className="text-[11px] text-amber-300/90 truncate flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping shrink-0" />
+                      <span>Waiting for {opponent?.name || 'Partner'} to approve...</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <span className="text-xs font-black text-amber-400">
+                    +{item.prompt?.points || 100} pts
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Urgent Partner Verification Alert Banner */}
       {pendingVerificationRequest && (
@@ -266,7 +339,6 @@ export default function GameView({
                     +{prompt.points} PTS
                   </span>
 
-                  {/* Swap / Replace button if not yet approved */}
                   {!isApproved && (
                     <button
                       onClick={(e) => handleSwapClick(e, prompt.id)}
@@ -298,7 +370,6 @@ export default function GameView({
 
               {/* Status Footer */}
               <div className="mt-3 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs">
-                {/* My Status */}
                 <div>
                   {mySub?.status === 'approved' && (
                     <span className="inline-flex items-center gap-1.5 text-emerald-400 font-bold">
@@ -307,7 +378,7 @@ export default function GameView({
                   )}
                   {mySub?.status === 'pending' && (
                     <span className="inline-flex items-center gap-1.5 text-amber-400 font-bold animate-pulse">
-                      <Clock className="w-4 h-4" /> Pending Partner Review
+                      <Clock className="w-4 h-4" /> In Approval Queue...
                     </span>
                   )}
                   {mySub?.status === 'rejected' && (
@@ -322,7 +393,6 @@ export default function GameView({
                   )}
                 </div>
 
-                {/* Opponent Status */}
                 <div className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
                   <span>{opponent?.avatar || 'Partner'}:</span>
                   {oppSub?.status === 'approved' ? (
@@ -339,6 +409,64 @@ export default function GameView({
         })}
       </div>
 
+      {/* Game Options Menu Modal */}
+      {showMenuModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl animate-in slide-in-from-bottom duration-200">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="font-bold text-white text-base">Game Controls</h3>
+              <button
+                onClick={() => setShowMenuModal(false)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-sm">
+              <button
+                onClick={() => {
+                  setShowMenuModal(false);
+                  if (window.confirm('Are you sure you want to end the match early and view the results?')) {
+                    onEndGameEarly();
+                  }
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold flex items-center gap-2.5 transition text-left"
+              >
+                <Flag className="w-4 h-4 text-amber-400" />
+                <span>End Match Early & See Winner</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowMenuModal(false);
+                  if (window.confirm('Reset all scores and start a fresh rematch with your partner?')) {
+                    onRematch();
+                  }
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 font-bold flex items-center gap-2.5 transition text-left"
+              >
+                <RotateCcw className="w-4 h-4 text-blue-400" />
+                <span>Rematch / Reset Scores</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowMenuModal(false);
+                  if (window.confirm('Leave this room and return to the main lobby screen?')) {
+                    onLeaveToMainMenu();
+                  }
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 font-bold flex items-center gap-2.5 transition text-left"
+              >
+                <Home className="w-4 h-4 text-rose-400" />
+                <span>Leave to Main Menu / New Room</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Activity Log Drawer */}
       {showLogDrawer && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex justify-end">
@@ -352,7 +480,7 @@ export default function GameView({
                 onClick={() => setShowLogDrawer(false)}
                 className="text-slate-400 hover:text-white p-1"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 

@@ -335,6 +335,29 @@ io.on('connection', (socket) => {
     io.to(roomCode.toUpperCase()).emit('room_updated', result.room);
     if (callback) callback({ success: true, room: result.room });
   });
+
+  // End Game Early
+  socket.on('end_game_early', ({ roomCode, playerId }, callback) => {
+    const result = gameManager.endGameEarly(roomCode, playerId);
+    if (result.error) {
+      if (callback) callback({ success: false, error: result.error });
+      return;
+    }
+    io.to(roomCode.toUpperCase()).emit('room_updated', result.room);
+    io.to(roomCode.toUpperCase()).emit('game_completed', {
+      winner: result.room.winner,
+      room: result.room
+    });
+    if (callback) callback({ success: true, room: result.room });
+  });
+
+  // Leave Room
+  socket.on('leave_room', ({ roomCode, playerId }, callback) => {
+    if (roomCode) {
+      socket.leave(roomCode.toUpperCase());
+    }
+    if (callback) callback({ success: true });
+  });
 });
 
 // Serve frontend build if present
