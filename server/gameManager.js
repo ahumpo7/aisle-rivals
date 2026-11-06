@@ -1,5 +1,6 @@
 const { HUNT_PROMPTS } = require('./huntPrompts');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
+const uuidv4 = () => crypto.randomUUID();
 
 class GameManager {
   constructor() {
