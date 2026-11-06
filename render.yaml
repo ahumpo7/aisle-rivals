@@ -4,6 +4,7 @@ services:
     env: node
     plan: free
     region: oregon
+    autoDeploy: true
     buildCommand: npm install
     startCommand: node server/server.js
     envVars:
