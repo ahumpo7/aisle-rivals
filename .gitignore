@@ -3,7 +3,5 @@ node_modules/
 Thumbs.db
 server/uploads/*
 !server/uploads/.gitkeep
-dist/
-client/dist/
 *.log
 .gemini/
