@@ -10,7 +10,8 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
   const [name, setName] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState('🦊');
   const [joinCode, setJoinCode] = useState('');
-  const [targetWins, setTargetWins] = useState(8); // First to 5, 8, 10, or 12
+  const [gameMode, setGameMode] = useState('coop'); // 'coop' or 'versus'
+  const [targetWins, setTargetWins] = useState(8); // Target items to find
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
@@ -65,7 +66,8 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
       hostName: name.trim(),
       hostAvatar: selectedAvatar,
       targetWins: Number(targetWins),
-      deckSize: 20 // 20 items per match
+      deckSize: 20, // 20 items per match
+      gameMode
     }, (res) => {
       setLoading(false);
       if (res.success) {
@@ -232,18 +234,24 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
         <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 space-y-2 text-xs">
           <div className="flex items-center justify-between font-bold text-white">
             <span className="flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-amber-400" /> Match Setup:
+              <Sparkles className="w-4 h-4 text-amber-400" /> Match Mode:
             </span>
-            <span className="text-amber-400 font-extrabold">20 Items in Deck</span>
+            <span className={`px-2.5 py-0.5 rounded-lg font-black text-xs ${
+              room.gameMode === 'coop' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+            }`}>
+              {room.gameMode === 'coop' ? '🤝 Team Effort' : '⚔️ Head-to-Head'}
+            </span>
           </div>
           <div className="flex items-center justify-between text-slate-300">
-            <span>Win Condition:</span>
+            <span>{room.gameMode === 'coop' ? 'Team Objective:' : 'Win Condition:'}</span>
             <span className="px-2.5 py-1 rounded-lg bg-blue-600/30 text-blue-300 font-bold border border-blue-500/30">
-              First to {room.targetWins || 8} Verified Items!
+              {room.gameMode === 'coop' ? `Find ${room.targetWins} Items Together!` : `First to ${room.targetWins} Verified Items!`}
             </span>
           </div>
           <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-700/50">
-            💡 <b>Swap Feature:</b> Don't like a challenge or can't find it? Tap <b>"🔄 Swap"</b> on any item during the hunt to replace it!
+            {room.gameMode === 'coop'
+              ? '🤝 Divide and conquer! When you snap an item, your partner verifies it to score points for your team!'
+              : '⚔️ Racing against each other! When you snap an item, your partner verifies it to award you points!'}
           </p>
         </div>
 
@@ -437,14 +445,66 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
           </div>
         )}
 
+        {/* Game Mode Selection if Creating */}
+        {mode === 'create' && (
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+              Select Game Mode
+            </label>
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setGameMode('coop');
+                  sounds.playDing();
+                }}
+                className={`p-3 rounded-2xl border text-left transition ${
+                  gameMode === 'coop'
+                    ? 'bg-emerald-500/20 border-emerald-400 text-white shadow-lg ring-1 ring-emerald-400'
+                    : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-black text-sm text-emerald-400">
+                  <span>🤝 Team Effort</span>
+                </div>
+                <div className="text-[11px] text-slate-300 leading-snug mt-1">
+                  Work together as a couple to hunt and score points as a team!
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setGameMode('versus');
+                  sounds.playDing();
+                }}
+                className={`p-3 rounded-2xl border text-left transition ${
+                  gameMode === 'versus'
+                    ? 'bg-amber-500/20 border-amber-400 text-white shadow-lg ring-1 ring-amber-400'
+                    : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-black text-sm text-amber-400">
+                  <span>⚔️ Head-to-Head</span>
+                </div>
+                <div className="text-[11px] text-slate-300 leading-snug mt-1">
+                  Race against each other! First partner to the goal wins.
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Win Condition Selection if Creating */}
         {mode === 'create' && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                Win Condition (20 Items in Deck)
+                {gameMode === 'coop' ? 'Team Target (Find Together)' : 'Win Condition (First Partner)'}
               </label>
-              <span className="text-xs font-bold text-amber-400">First to {targetWins}</span>
+              <span className="text-xs font-bold text-amber-400">
+                {gameMode === 'coop' ? `Goal: ${targetWins} Items` : `First to ${targetWins}`}
+              </span>
             </div>
             <div className="grid grid-cols-4 gap-2">
               {[5, 8, 10, 12].map((num) => (
@@ -461,12 +521,14 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
                       : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600'
                   }`}
                 >
-                  {num} Wins
+                  {num} {gameMode === 'coop' ? 'Items' : 'Wins'}
                 </button>
               ))}
             </div>
             <p className="text-[11px] text-slate-400">
-              Deck gives you 20 challenges to pick from; first partner to find & verify {targetWins} wins the match!
+              {gameMode === 'coop'
+                ? `20 challenges in deck — work together to hunt & verify ${targetWins} items for the team!`
+                : `20 challenges in deck — first partner to find & verify ${targetWins} wins the match!`}
             </p>
           </div>
         )}

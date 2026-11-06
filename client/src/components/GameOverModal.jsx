@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
-import { Trophy, Crown, Sparkles, RotateCcw, Heart, Share2, CheckCircle2, Home } from 'lucide-react';
+import { Trophy, Crown, Sparkles, RotateCcw, Heart, Share2, CheckCircle2, Home, Users } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { sounds } from '../utils/audio';
 
 export default function GameOverModal({ room, player, onRematch, onLeaveToMainMenu }) {
+  const isCoop = room?.gameMode === 'coop';
   const winner = room?.winner;
   const isWinner = winner?.id === player?.id;
   const playersList = Object.values(room?.players || {});
@@ -11,7 +12,6 @@ export default function GameOverModal({ room, player, onRematch, onLeaveToMainMe
 
   useEffect(() => {
     sounds.playVictory();
-    // Big confetti blast
     const count = 200;
     const defaults = { origin: { y: 0.7 } };
 
@@ -35,46 +35,79 @@ export default function GameOverModal({ room, player, onRematch, onLeaveToMainMe
       <div className="bg-slate-900 border border-amber-400/60 rounded-3xl max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         
         {/* Banner */}
-        <div className="bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 p-6 text-center text-slate-950 relative overflow-hidden">
-          <div className="text-5xl mb-2 animate-bounce">🏆</div>
+        <div className={`p-6 text-center text-slate-950 relative overflow-hidden ${
+          isCoop
+            ? 'bg-gradient-to-r from-emerald-400 via-teal-300 to-amber-300'
+            : 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600'
+        }`}>
+          <div className="text-5xl mb-2 animate-bounce">
+            {isCoop ? '🤝' : '🏆'}
+          </div>
           <h2 className="text-2xl sm:text-3xl font-black tracking-tight uppercase">
-            {winner?.name} Wins!
+            {isCoop ? 'Mission Complete!' : `${winner?.name} Wins!`}
           </h2>
           <p className="text-xs sm:text-sm font-bold opacity-90">
-            {isWinner ? "You're the Walmart Scavenger Champion!" : "Better luck next Walmart date night!"}
+            {isCoop
+              ? `You conquered Walmart as a team with ${room.teamScore || 0} points!`
+              : isWinner ? "You're the Walmart Scavenger Champion!" : "Better luck next Walmart date night!"}
           </p>
         </div>
 
         {/* Content */}
         <div className="p-5 overflow-y-auto space-y-5 text-sm flex-1">
           {/* Scoreboard Recap */}
-          <div className="grid grid-cols-2 gap-3">
-            {playersList.map((p) => {
-              const isPWinner = p.id === winner?.id;
-              return (
-                <div
-                  key={p.id}
-                  className={`p-4 rounded-2xl border text-center space-y-1 relative ${
-                    isPWinner
-                      ? 'bg-amber-400/10 border-amber-400/60 shadow-lg'
-                      : 'bg-slate-800/80 border-slate-700/80'
-                  }`}
-                >
-                  {isPWinner && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-slate-950 font-black text-[10px] uppercase px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
-                      <Crown className="w-3 h-3" /> Winner
-                    </span>
-                  )}
-                  <div className="text-3xl pt-1">{p.avatar}</div>
-                  <div className="font-extrabold text-white text-base truncate">{p.name}</div>
-                  <div className="text-2xl font-black text-amber-400">{p.score} <span className="text-xs text-slate-400 font-normal">pts</span></div>
-                  <div className="text-[11px] text-slate-400">
-                    {p.verifiedCount} / {room.prompts.length} items found
+          {isCoop ? (
+            <div className="bg-slate-800/80 border border-emerald-500/40 rounded-2xl p-4 text-center space-y-3">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
+                <Heart className="w-3.5 h-3.5 text-pink-500 fill-pink-500" /> Couple Synergy: 100%
+              </div>
+              <div className="text-3xl font-black text-amber-400">
+                {room.teamScore || 0} <span className="text-sm font-normal text-slate-300">Total Team Points</span>
+              </div>
+              <p className="text-xs text-slate-300 font-medium">
+                Together you found <b>{room.teamVerifiedCount || 0}</b> out of <b>{room.targetWins}</b> target items!
+              </p>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-700/60 text-xs">
+                {playersList.map((p) => (
+                  <div key={p.id} className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/40">
+                    <div className="text-2xl mb-1">{p.avatar}</div>
+                    <div className="font-bold text-white truncate">{p.name}</div>
+                    <div className="text-amber-400 font-black">{p.score} pts</div>
+                    <div className="text-[10px] text-slate-400">{p.verifiedCount} found</div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {playersList.map((p) => {
+                const isPWinner = p.id === winner?.id;
+                return (
+                  <div
+                    key={p.id}
+                    className={`p-4 rounded-2xl border text-center space-y-1 relative ${
+                      isPWinner
+                        ? 'bg-amber-400/10 border-amber-400/60 shadow-lg'
+                        : 'bg-slate-800/80 border-slate-700/80'
+                    }`}
+                  >
+                    {isPWinner && (
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-slate-950 font-black text-[10px] uppercase px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
+                        <Crown className="w-3 h-3" /> Winner
+                      </span>
+                    )}
+                    <div className="text-3xl pt-1">{p.avatar}</div>
+                    <div className="font-extrabold text-white text-base truncate">{p.name}</div>
+                    <div className="text-2xl font-black text-amber-400">{p.score} <span className="text-xs text-slate-400 font-normal">pts</span></div>
+                    <div className="text-[11px] text-slate-400">
+                      {p.verifiedCount} / {room.prompts.length} items found
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Couples Memory Scrapbook of Finds */}
           <div className="space-y-3 pt-2">

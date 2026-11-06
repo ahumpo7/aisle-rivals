@@ -19,7 +19,7 @@ class GameManager {
     return code;
   }
 
-  createRoom(hostName, hostAvatar = '🦊', targetWins = 8, deckSize = 20) {
+  createRoom(hostName, hostAvatar = '🦊', targetWins = 8, deckSize = 20, gameMode = 'coop') {
     const roomCode = this.generateRoomCode();
     const hostId = uuidv4();
 
@@ -28,14 +28,19 @@ class GameManager {
     const matchDeckSize = Math.min(deckSize || 20, HUNT_PROMPTS.length);
     const selectedPrompts = shuffled.slice(0, matchDeckSize);
 
+    const mode = gameMode === 'versus' ? 'versus' : 'coop';
+
     const room = {
       roomCode,
       createdAt: Date.now(),
       status: 'waiting', // waiting, in_progress, completed
+      gameMode: mode, // 'coop' (team effort) or 'versus' (head-to-head)
       deckSize: selectedPrompts.length,
-      targetWins: Math.min(Number(targetWins) || 8, selectedPrompts.length), // First to X items/points wins!
+      targetWins: Math.min(Number(targetWins) || 8, selectedPrompts.length),
       prompts: selectedPrompts,
       winner: null,
+      teamScore: 0,
+      teamVerifiedCount: 0,
       players: {
         [hostId]: {
           id: hostId,
@@ -53,7 +58,7 @@ class GameManager {
         {
           id: uuidv4(),
           type: 'room_created',
-          message: `${hostName || 'Partner 1'} created Room ${roomCode}! First to ${targetWins || 8} verified items wins.`,
+          message: `${hostName || 'Partner 1'} created Room ${roomCode}! Mode: ${mode === 'coop' ? '🤝 Team Effort' : '⚔️ Head-to-Head'} (Goal: ${targetWins || 8} items).`,
           timestamp: Date.now()
         }
       ]
@@ -72,7 +77,6 @@ class GameManager {
 
     const playerKeys = Object.keys(room.players);
     if (playerKeys.length >= 2) {
-      // Check if an existing player is reconnecting by name
       const existingKey = playerKeys.find(
         (key) => room.players[key].name.toLowerCase() === playerName.trim().toLowerCase()
       );
@@ -130,10 +134,14 @@ class GameManager {
 
     room.status = 'in_progress';
     room.startedAt = Date.now();
+    const modeMsg = room.gameMode === 'coop'
+      ? `🤝 Team Effort active! Work together to find and verify ${room.targetWins} items!`
+      : `⚔️ Head-to-Head active! First partner to verify ${room.targetWins} items wins!`;
+
     room.activityLog.push({
       id: uuidv4(),
       type: 'game_started',
-      message: `🏁 Scavenger Hunt started! 20 items in deck — First to verify ${room.targetWins} wins!`,
+      message: `🏁 Scavenger Hunt started! ${modeMsg}`,
       timestamp: Date.now()
     });
 
@@ -152,7 +160,6 @@ class GameManager {
 
     const oldPrompt = room.prompts[promptIndex];
 
-    // Find unused prompts from master pool
     const currentPromptIds = new Set(room.prompts.map((p) => p.id));
     const availablePrompts = HUNT_PROMPTS.filter((p) => !currentPromptIds.has(p.id));
 
@@ -160,7 +167,6 @@ class GameManager {
       return { error: 'No more unused prompts in the master deck!' };
     }
 
-    // Pick random unused prompt
     const newPrompt = availablePrompts[Math.floor(Math.random() * availablePrompts.length)];
     room.prompts[promptIndex] = newPrompt;
 
@@ -196,7 +202,7 @@ class GameManager {
       promptIcon: prompt.icon,
       photoUrl,
       caption: caption.trim(),
-      status: 'pending', // pending, approved, rejected
+      status: 'pending',
       submittedAt: Date.now(),
       feedback: '',
       pointsEarned: 0
@@ -248,29 +254,76 @@ class GameManager {
         (s) => s.status === 'approved'
       ).length;
 
-      room.activityLog.push({
-        id: uuidv4(),
-        type: 'item_approved',
-        reviewerName: reviewer.name,
-        targetPlayerName: targetPlayer.name,
-        promptTitle: submission.promptTitle,
-        points,
-        feedback: submission.feedback,
-        message: `✅ ${reviewer.name} verified ${targetPlayer.name}'s "${submission.promptTitle}" (+${points} pts)! (${targetPlayer.verifiedCount}/${room.targetWins} to win)`,
-        timestamp: Date.now()
-      });
+      // Handle Co-Op vs Versus
+      if (room.gameMode === 'coop') {
+        const uniqueVerifiedPrompts = new Set();
+        let totalScore = 0;
+        for (const p of Object.values(room.players)) {
+          for (const sub of Object.values(p.submissions)) {
+            if (sub.status === 'approved') {
+              uniqueVerifiedPrompts.add(sub.promptId);
+              totalScore += (sub.pointsEarned || 0);
+            }
+          }
+        }
+        room.teamVerifiedCount = uniqueVerifiedPrompts.size;
+        room.teamScore = totalScore;
 
-      // Win Condition: First to targetWins (e.g. 5, 8, 10 items)
-      if (targetPlayer.verifiedCount >= room.targetWins) {
-        room.status = 'completed';
-        room.completedAt = Date.now();
-        room.winner = targetPlayer;
         room.activityLog.push({
           id: uuidv4(),
-          type: 'game_won',
-          message: `🏆 ${targetPlayer.name} reached the goal of ${room.targetWins} verified items and won the match!`,
+          type: 'item_approved',
+          reviewerName: reviewer.name,
+          targetPlayerName: targetPlayer.name,
+          promptTitle: submission.promptTitle,
+          points,
+          feedback: submission.feedback,
+          message: `✅ ${reviewer.name} verified ${targetPlayer.name}'s "${submission.promptTitle}" (+${points} team pts)! (Team: ${room.teamVerifiedCount}/${room.targetWins})`,
           timestamp: Date.now()
         });
+
+        // Co-op Win Condition
+        if (room.teamVerifiedCount >= room.targetWins) {
+          room.status = 'completed';
+          room.completedAt = Date.now();
+          room.winner = {
+            id: 'team',
+            isTeam: true,
+            name: 'Couple Power Team',
+            score: room.teamScore,
+            verifiedCount: room.teamVerifiedCount
+          };
+          room.activityLog.push({
+            id: uuidv4(),
+            type: 'game_won',
+            message: `🏆 Couple Team Mission Accomplished! Found all ${room.targetWins} items together with ${room.teamScore} points!`,
+            timestamp: Date.now()
+          });
+        }
+      } else {
+        // Versus Mode (Head-to-Head)
+        room.activityLog.push({
+          id: uuidv4(),
+          type: 'item_approved',
+          reviewerName: reviewer.name,
+          targetPlayerName: targetPlayer.name,
+          promptTitle: submission.promptTitle,
+          points,
+          feedback: submission.feedback,
+          message: `✅ ${reviewer.name} verified ${targetPlayer.name}'s "${submission.promptTitle}" (+${points} pts)! (${targetPlayer.verifiedCount}/${room.targetWins} to win)`,
+          timestamp: Date.now()
+        });
+
+        if (targetPlayer.verifiedCount >= room.targetWins) {
+          room.status = 'completed';
+          room.completedAt = Date.now();
+          room.winner = targetPlayer;
+          room.activityLog.push({
+            id: uuidv4(),
+            type: 'game_won',
+            message: `🏆 ${targetPlayer.name} reached the goal of ${room.targetWins} verified items and won the match!`,
+            timestamp: Date.now()
+          });
+        }
       }
     } else {
       submission.pointsEarned = 0;
@@ -320,7 +373,7 @@ class GameManager {
       verificationCriteria: 'Partner verification required.'
     };
 
-    room.prompts.unshift(newPrompt); // Add to beginning of deck
+    room.prompts.unshift(newPrompt);
     room.deckSize = room.prompts.length;
 
     room.activityLog.push({
@@ -339,6 +392,8 @@ class GameManager {
 
     room.status = 'in_progress';
     room.winner = null;
+    room.teamScore = 0;
+    room.teamVerifiedCount = 0;
     room.startedAt = Date.now();
     for (const pId in room.players) {
       room.players[pId].score = 0;
@@ -361,23 +416,39 @@ class GameManager {
     if (!room) return { error: 'Room not found' };
     const requester = room.players[requesterId];
 
-    const playersList = Object.values(room.players);
-    let topPlayer = playersList[0];
-    for (const p of playersList) {
-      if (p.score > (topPlayer?.score || 0)) {
-        topPlayer = p;
-      }
-    }
-
     room.status = 'completed';
     room.completedAt = Date.now();
-    room.winner = topPlayer;
-    room.activityLog.push({
-      id: uuidv4(),
-      type: 'game_ended_early',
-      message: `🏁 ${requester ? requester.name : 'Match'} ended the hunt early! ${topPlayer ? topPlayer.name + ' wins!' : ''}`,
-      timestamp: Date.now()
-    });
+
+    if (room.gameMode === 'coop') {
+      room.winner = {
+        id: 'team',
+        isTeam: true,
+        name: 'Couple Power Team',
+        score: room.teamScore,
+        verifiedCount: room.teamVerifiedCount
+      };
+      room.activityLog.push({
+        id: uuidv4(),
+        type: 'game_ended_early',
+        message: `🏁 ${requester ? requester.name : 'Match'} concluded the team hunt! Total Score: ${room.teamScore} pts with ${room.teamVerifiedCount} items found together!`,
+        timestamp: Date.now()
+      });
+    } else {
+      const playersList = Object.values(room.players);
+      let topPlayer = playersList[0];
+      for (const p of playersList) {
+        if (p.score > (topPlayer?.score || 0)) {
+          topPlayer = p;
+        }
+      }
+      room.winner = topPlayer;
+      room.activityLog.push({
+        id: uuidv4(),
+        type: 'game_ended_early',
+        message: `🏁 ${requester ? requester.name : 'Match'} ended the hunt early! ${topPlayer ? topPlayer.name + ' wins!' : ''}`,
+        timestamp: Date.now()
+      });
+    }
 
     return { room };
   }

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Trophy, CheckCircle2, Clock, AlertCircle, Camera, Sparkles, Plus, 
   Volume2, VolumeX, Eye, ArrowRight, ShieldCheck, Flame, Bell, MessageSquare,
-  RefreshCw, Shuffle, MoreVertical, Flag, RotateCcw, Home, X, Menu
+  RefreshCw, Shuffle, MoreVertical, Flag, RotateCcw, Home, X, Menu, Heart, Users
 } from 'lucide-react';
 import { sounds } from '../utils/audio';
 
@@ -33,8 +33,11 @@ export default function GameView({
     setMuted(!muted);
   };
 
+  const isCoop = room?.gameMode === 'coop';
   const prompts = room?.prompts || [];
   const targetWins = room?.targetWins || 8;
+  const teamScore = room?.teamScore || 0;
+  const teamVerifiedCount = room?.teamVerifiedCount || 0;
   const mySubmissions = player?.submissions || {};
   const oppSubmissions = opponent?.submissions || {};
 
@@ -49,10 +52,15 @@ export default function GameView({
   // Filter prompts
   const filteredPrompts = prompts.filter((p) => {
     const mySub = mySubmissions[p.id];
+    const oppSub = oppSubmissions[p.id];
+    const isTeamFound = mySub?.status === 'approved' || oppSub?.status === 'approved';
+
     if (filter === 'todo') {
+      if (isCoop) return !isTeamFound;
       return !mySub || mySub.status === 'rejected';
     }
     if (filter === 'completed') {
+      if (isCoop) return isTeamFound;
       return mySub?.status === 'approved';
     }
     return true;
@@ -83,7 +91,9 @@ export default function GameView({
             ROOM: {room.roomCode}
           </span>
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-emerald-400 font-medium">Race to {targetWins}!</span>
+          <span className="text-emerald-400 font-medium">
+            {isCoop ? `Team Goal: ${teamVerifiedCount}/${targetWins}` : `Race to ${targetWins}!`}
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -111,59 +121,118 @@ export default function GameView({
         </div>
       </div>
 
-      {/* Head-to-Head Couples Scoreboard */}
-      <div className="bg-slate-800/90 backdrop-blur rounded-3xl border border-slate-700/80 p-4 shadow-xl space-y-3 relative overflow-hidden">
-        <div className="grid grid-cols-2 gap-3 items-center">
-          {/* Player (You) */}
-          <div className="bg-slate-900/70 border border-blue-500/40 rounded-2xl p-3 text-center space-y-1 relative">
-            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-600/30 text-blue-300 border border-blue-500/30">
-              You
-            </span>
-            <div className="text-2xl pt-0.5">{player.avatar}</div>
-            <div className="font-bold text-white text-sm truncate">{player.name}</div>
-            <div className="text-2xl font-black text-amber-400">
-              {player.score} <span className="text-[11px] text-slate-400 font-normal">pts</span>
+      {/* Mode Scoreboard */}
+      {isCoop ? (
+        /* Couples Team Effort Scoreboard */
+        <div className="bg-slate-800/90 backdrop-blur rounded-3xl border border-emerald-500/40 p-4 sm:p-5 shadow-xl space-y-3 relative overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-700/60 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">{player.avatar}</span>
+              <span className="text-xs font-black text-pink-400">❤️</span>
+              <span className="text-2xl">{opponent?.avatar || '🐼'}</span>
+              <div className="ml-1 min-w-0">
+                <span className="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  Couple Team Effort
+                </span>
+                <div className="font-extrabold text-white text-sm truncate">
+                  {player.name} & {opponent?.name || 'Partner'}
+                </div>
+              </div>
             </div>
-            <div className="text-[11px] font-bold text-blue-400">
-              {myApprovedCount} / {targetWins} to win
+
+            <div className="text-right shrink-0">
+              <div className="text-2xl font-black text-amber-400">
+                {teamScore} <span className="text-[11px] text-slate-400 font-normal">pts</span>
+              </div>
+              <div className="text-[11px] font-bold text-emerald-400">
+                {teamVerifiedCount} / {targetWins} Goal
+              </div>
             </div>
           </div>
 
-          {/* Opponent (Partner) */}
-          <div className="bg-slate-900/70 border border-pink-500/40 rounded-2xl p-3 text-center space-y-1 relative">
-            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-pink-600/30 text-pink-300 border border-pink-500/30">
-              Partner
-            </span>
-            <div className="text-2xl pt-0.5">{opponent?.avatar || '🐼'}</div>
-            <div className="font-bold text-white text-sm truncate">{opponent?.name || 'Partner'}</div>
-            <div className="text-2xl font-black text-amber-400">
-              {opponent?.score || 0} <span className="text-[11px] text-slate-400 font-normal">pts</span>
+          {/* Unified Team Progress Bar */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-[11px] font-bold uppercase text-slate-400">
+              <span>Team Mission Progress</span>
+              <span className="text-emerald-400 font-extrabold">
+                {Math.min(100, Math.round((teamVerifiedCount / targetWins) * 100))}%
+              </span>
             </div>
-            <div className="text-[11px] font-bold text-pink-400">
-              {oppApprovedCount} / {targetWins} to win
+            <div className="w-full bg-slate-950 h-3.5 rounded-full overflow-hidden border border-slate-700/60 p-0.5 flex">
+              <div
+                className="bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 h-full rounded-full transition-all duration-500 shadow-sm"
+                style={{ width: `${Math.min(100, (teamVerifiedCount / targetWins) * 100)}%` }}
+              />
             </div>
           </div>
-        </div>
 
-        {/* Progress Bar Race towards targetWins */}
-        <div className="space-y-1">
-          <div className="flex justify-between text-[10px] font-bold uppercase text-slate-400">
-            <span>Race to Goal</span>
-            <span>First to {targetWins} Verified</span>
-          </div>
-          <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden flex border border-slate-700/60 p-0.5">
-            <div
-              className="bg-blue-500 h-full rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(100, (myApprovedCount / targetWins) * 100) / 2}%` }}
-            />
-            <div className="w-1" />
-            <div
-              className="bg-pink-500 h-full rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(100, (oppApprovedCount / targetWins) * 100) / 2}%` }}
-            />
+          {/* Contributions Breakdown */}
+          <div className="grid grid-cols-2 gap-2 pt-1 text-center text-xs">
+            <div className="bg-slate-900/60 rounded-xl p-2 border border-slate-700/40 truncate">
+              <span className="text-slate-400 font-semibold">{player.name}: </span>
+              <b className="text-blue-400">{myApprovedCount} found</b>
+            </div>
+            <div className="bg-slate-900/60 rounded-xl p-2 border border-slate-700/40 truncate">
+              <span className="text-slate-400 font-semibold">{opponent?.name || 'Partner'}: </span>
+              <b className="text-pink-400">{oppApprovedCount} found</b>
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        /* Head-to-Head Couples Scoreboard */
+        <div className="bg-slate-800/90 backdrop-blur rounded-3xl border border-slate-700/80 p-4 shadow-xl space-y-3 relative overflow-hidden">
+          <div className="grid grid-cols-2 gap-3 items-center">
+            {/* Player (You) */}
+            <div className="bg-slate-900/70 border border-blue-500/40 rounded-2xl p-3 text-center space-y-1 relative">
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-600/30 text-blue-300 border border-blue-500/30">
+                You
+              </span>
+              <div className="text-2xl pt-0.5">{player.avatar}</div>
+              <div className="font-bold text-white text-sm truncate">{player.name}</div>
+              <div className="text-2xl font-black text-amber-400">
+                {player.score} <span className="text-[11px] text-slate-400 font-normal">pts</span>
+              </div>
+              <div className="text-[11px] font-bold text-blue-400">
+                {myApprovedCount} / {targetWins} to win
+              </div>
+            </div>
+
+            {/* Opponent (Partner) */}
+            <div className="bg-slate-900/70 border border-pink-500/40 rounded-2xl p-3 text-center space-y-1 relative">
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-pink-600/30 text-pink-300 border border-pink-500/30">
+                Partner
+              </span>
+              <div className="text-2xl pt-0.5">{opponent?.avatar || '🐼'}</div>
+              <div className="font-bold text-white text-sm truncate">{opponent?.name || 'Partner'}</div>
+              <div className="text-2xl font-black text-amber-400">
+                {opponent?.score || 0} <span className="text-[11px] text-slate-400 font-normal">pts</span>
+              </div>
+              <div className="text-[11px] font-bold text-pink-400">
+                {oppApprovedCount} / {targetWins} to win
+              </div>
+            </div>
+          </div>
+
+          {/* Progress Bar Race towards targetWins */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-[10px] font-bold uppercase text-slate-400">
+              <span>Race to Goal</span>
+              <span>First to {targetWins} Verified</span>
+            </div>
+            <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden flex border border-slate-700/60 p-0.5">
+              <div
+                className="bg-blue-500 h-full rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, (myApprovedCount / targetWins) * 100) / 2}%` }}
+              />
+              <div className="w-1" />
+              <div
+                className="bg-pink-500 h-full rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, (oppApprovedCount / targetWins) * 100) / 2}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Awaiting Partner Approval Queue Section */}
       {pendingQueue.length > 0 && (
@@ -263,7 +332,7 @@ export default function GameView({
         </div>
       </div>
 
-      {/* Filter Tabs & Swap Hint */}
+      {/* Filter Tabs & Custom Challenge Button */}
       <div className="flex items-center justify-between gap-2 pt-1">
         <div className="flex gap-1.5 p-1 bg-slate-800/80 rounded-xl border border-slate-700 text-xs font-bold">
           <button
@@ -280,7 +349,7 @@ export default function GameView({
               filter === 'todo' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
             }`}
           >
-            To Hunt ({prompts.length - myApprovedCount})
+            {isCoop ? `Need (${prompts.length - teamVerifiedCount})` : `To Hunt (${prompts.length - myApprovedCount})`}
           </button>
           <button
             onClick={() => setFilter('completed')}
@@ -288,7 +357,7 @@ export default function GameView({
               filter === 'completed' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
             }`}
           >
-            Found ({myApprovedCount})
+            {isCoop ? `Team (${teamVerifiedCount})` : `Found (${myApprovedCount})`}
           </button>
         </div>
 
@@ -305,16 +374,18 @@ export default function GameView({
         {filteredPrompts.map((prompt) => {
           const mySub = mySubmissions[prompt.id];
           const oppSub = oppSubmissions[prompt.id];
-          const isApproved = mySub?.status === 'approved';
+          const isTeamApproved = isCoop && (mySub?.status === 'approved' || oppSub?.status === 'approved');
+          const isMyApproved = mySub?.status === 'approved';
+          const isCompleted = isCoop ? isTeamApproved : isMyApproved;
 
           return (
             <div
               key={prompt.id}
               onClick={() => onOpenSnapModal(prompt)}
               className={`p-4 rounded-2xl border transition-all cursor-pointer active:scale-98 shadow-md relative overflow-hidden group ${
-                mySub?.status === 'approved'
+                isCompleted
                   ? 'bg-slate-800/50 border-emerald-500/40 hover:border-emerald-500/70'
-                  : mySub?.status === 'pending'
+                  : mySub?.status === 'pending' || oppSub?.status === 'pending'
                   ? 'bg-slate-800/70 border-amber-500/50 hover:border-amber-500'
                   : mySub?.status === 'rejected'
                   ? 'bg-slate-800/70 border-rose-500/50 hover:border-rose-500'
@@ -339,7 +410,7 @@ export default function GameView({
                     +{prompt.points} PTS
                   </span>
 
-                  {!isApproved && (
+                  {!isCompleted && (
                     <button
                       onClick={(e) => handleSwapClick(e, prompt.id)}
                       disabled={swappingId === prompt.id}
@@ -370,39 +441,78 @@ export default function GameView({
 
               {/* Status Footer */}
               <div className="mt-3 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs">
-                <div>
-                  {mySub?.status === 'approved' && (
-                    <span className="inline-flex items-center gap-1.5 text-emerald-400 font-bold">
-                      <CheckCircle2 className="w-4 h-4" /> Verified (+{mySub.pointsEarned} pts)
-                    </span>
-                  )}
-                  {mySub?.status === 'pending' && (
-                    <span className="inline-flex items-center gap-1.5 text-amber-400 font-bold animate-pulse">
-                      <Clock className="w-4 h-4" /> In Approval Queue...
-                    </span>
-                  )}
-                  {mySub?.status === 'rejected' && (
-                    <span className="inline-flex items-center gap-1.5 text-rose-400 font-bold">
-                      <AlertCircle className="w-4 h-4" /> Rejected! Tap to retake
-                    </span>
-                  )}
-                  {!mySub && (
-                    <span className="inline-flex items-center gap-1.5 text-blue-400 font-bold">
-                      <Camera className="w-4 h-4" /> Tap to Hunt & Snap
-                    </span>
-                  )}
-                </div>
+                {isCoop ? (
+                  /* Co-Op Team Status */
+                  <div className="w-full flex items-center justify-between">
+                    <div>
+                      {mySub?.status === 'approved' ? (
+                        <span className="inline-flex items-center gap-1.5 text-emerald-400 font-bold">
+                          <CheckCircle2 className="w-4 h-4" /> Found by You (+{mySub.pointsEarned} team pts)
+                        </span>
+                      ) : oppSub?.status === 'approved' ? (
+                        <span className="inline-flex items-center gap-1.5 text-emerald-400 font-bold">
+                          <CheckCircle2 className="w-4 h-4" /> Found by {opponent?.name || 'Partner'} (+{oppSub.pointsEarned} team pts)
+                        </span>
+                      ) : mySub?.status === 'pending' ? (
+                        <span className="inline-flex items-center gap-1.5 text-amber-400 font-bold animate-pulse">
+                          <Clock className="w-4 h-4" /> In Approval Queue...
+                        </span>
+                      ) : oppSub?.status === 'pending' ? (
+                        <span className="inline-flex items-center gap-1.5 text-amber-400 font-bold animate-pulse">
+                          <Eye className="w-4 h-4" /> Partner submitted! Tap to verify!
+                        </span>
+                      ) : mySub?.status === 'rejected' ? (
+                        <span className="inline-flex items-center gap-1.5 text-rose-400 font-bold">
+                          <AlertCircle className="w-4 h-4" /> Rejected! Tap to retake
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-blue-400 font-bold">
+                          <Camera className="w-4 h-4" /> Tap to Hunt & Snap for Team
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-semibold">
+                      🤝 Team
+                    </div>
+                  </div>
+                ) : (
+                  /* Versus Mode Status */
+                  <>
+                    <div>
+                      {mySub?.status === 'approved' && (
+                        <span className="inline-flex items-center gap-1.5 text-emerald-400 font-bold">
+                          <CheckCircle2 className="w-4 h-4" /> Verified (+{mySub.pointsEarned} pts)
+                        </span>
+                      )}
+                      {mySub?.status === 'pending' && (
+                        <span className="inline-flex items-center gap-1.5 text-amber-400 font-bold animate-pulse">
+                          <Clock className="w-4 h-4" /> In Approval Queue...
+                        </span>
+                      )}
+                      {mySub?.status === 'rejected' && (
+                        <span className="inline-flex items-center gap-1.5 text-rose-400 font-bold">
+                          <AlertCircle className="w-4 h-4" /> Rejected! Tap to retake
+                        </span>
+                      )}
+                      {!mySub && (
+                        <span className="inline-flex items-center gap-1.5 text-blue-400 font-bold">
+                          <Camera className="w-4 h-4" /> Tap to Hunt & Snap
+                        </span>
+                      )}
+                    </div>
 
-                <div className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
-                  <span>{opponent?.avatar || 'Partner'}:</span>
-                  {oppSub?.status === 'approved' ? (
-                    <span className="text-emerald-400 font-bold">Found ✅</span>
-                  ) : oppSub?.status === 'pending' ? (
-                    <span className="text-amber-400 font-bold">Inspecting...</span>
-                  ) : (
-                    <span className="text-slate-500">Searching...</span>
-                  )}
-                </div>
+                    <div className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+                      <span>{opponent?.avatar || 'Partner'}:</span>
+                      {oppSub?.status === 'approved' ? (
+                        <span className="text-emerald-400 font-bold">Found ✅</span>
+                      ) : oppSub?.status === 'pending' ? (
+                        <span className="text-amber-400 font-bold">Inspecting...</span>
+                      ) : (
+                        <span className="text-slate-500">Searching...</span>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           );
@@ -445,7 +555,7 @@ export default function GameView({
                 className="w-full py-3 px-4 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold flex items-center gap-2.5 transition text-left"
               >
                 <Flag className="w-4 h-4 text-amber-400" />
-                <span>End Match Early & See Winner</span>
+                <span>End Match Early & See Results</span>
               </button>
 
               <button
