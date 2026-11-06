@@ -63,11 +63,27 @@ function getLocalNetworkAddresses() {
   return addresses;
 }
 
+// Dynamically determine the best base URL (Render Cloud URL, Public Tunnel, or Local LAN IP)
+function getEffectiveBaseUrl(req) {
+  if (publicTunnelUrl) return publicTunnelUrl;
+  
+  // Check if hosted on Render, Railway, or behind reverse proxy
+  const forwardedProto = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+  const host = req.headers['x-forwarded-host'] || req.get('host');
+  if (host && !host.startsWith('localhost') && !host.startsWith('127.0.0.1')) {
+    return `${forwardedProto}://${host}`;
+  }
+
+  const addresses = getLocalNetworkAddresses();
+  const primaryIp = addresses.length > 0 ? addresses[0].address : 'localhost';
+  return `http://${primaryIp}:${PORT}`;
+}
+
 // API: Get server network info (including public tunnel if active) and QR code
 app.get('/api/network-info', async (req, res) => {
   const addresses = getLocalNetworkAddresses();
   const primaryIp = addresses.length > 0 ? addresses[0].address : 'localhost';
-  const effectiveUrl = publicTunnelUrl || `http://${primaryIp}:${PORT}`;
+  const effectiveUrl = getEffectiveBaseUrl(req);
   const qrDataUrl = await QRCode.toDataURL(effectiveUrl, {
     margin: 1,
     color: { dark: '#0f172a', light: '#ffffff' }
@@ -87,11 +103,7 @@ app.get('/api/network-info', async (req, res) => {
 app.get('/api/room-qr/:roomCode', async (req, res) => {
   try {
     const { roomCode } = req.params;
-    const addresses = getLocalNetworkAddresses();
-    const primaryIp = addresses.length > 0 ? addresses[0].address : 'localhost';
-    
-    // Prioritize public tunnel URL so anyone anywhere on cellular data can scan & play!
-    const baseUrl = publicTunnelUrl || `http://${primaryIp}:${PORT}`;
+    const baseUrl = getEffectiveBaseUrl(req);
     const joinUrl = `${baseUrl}/?room=${roomCode.toUpperCase()}`;
     const qrDataUrl = await QRCode.toDataURL(joinUrl, {
       margin: 1,

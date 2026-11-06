@@ -1,9 +1,23 @@
 # Aisle Rivals 🛒 — Couple's Store Scavenger Hunt
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ahumpo7/aisle-rivals)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 [![Node.js](https://img.shields.io/badge/Node.js-v18%2B-green.svg)](https://nodejs.org/)
 
 An interactive, real-time 2-player store scavenger hunt web app designed for couples walking through **Walmart** (or any grocery/department store). Rather than mundane tasks like "find a banana", the game challenges you to track down hilarious, creative, and cursed retail curiosities.
+
+---
+
+## ⚡ 1-Click Free Cloud Deployment (Render)
+
+Deploy this app to the cloud in 60 seconds so it runs 24/7 on the internet without your computer:
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ahumpo7/aisle-rivals)
+
+1. Click the **Deploy to Render** button above (or go to [dashboard.render.com/blueprint/new](https://dashboard.render.com/blueprint/new) and connect `ahumpo7/aisle-rivals`).
+2. Click **Apply**.
+3. Render automatically installs dependencies, builds the client, and deploys it on a free permanent HTTPS URL (e.g. `https://aisle-rivals.onrender.com`).
+4. Open the link on your phone from anywhere in the world and start hunting!
 
 ---
 

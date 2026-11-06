@@ -1,10 +1,11 @@
 services:
   - type: web
-    name: aisle-rivals-scavenger-hunt
+    name: aisle-rivals
     env: node
     plan: free
-    buildCommand: npm install && cd client && npm install && npm run build
-    startCommand: node server/server.js
+    region: oregon
+    buildCommand: npm run build
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
