@@ -5,11 +5,13 @@
   "main": "server/server.js",
   "scripts": {
     "start": "node server/server.js",
-    "build": "cd client && npm install && npm run build",
-    "build:all": "npm install && cd client && npm install && npm run build",
+    "build": "npm install && cd client && npm install && npm run build",
     "server": "node server/server.js",
     "client": "cd client && npm run dev",
     "test": "node test-game-flow.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "keywords": [
     "scavenger-hunt",

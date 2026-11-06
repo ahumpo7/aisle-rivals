@@ -4,10 +4,12 @@ services:
     env: node
     plan: free
     region: oregon
-    buildCommand: npm run build
-    startCommand: npm start
+    buildCommand: npm install && cd client && npm install && npm run build
+    startCommand: node server/server.js
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: "20.18.0"
       - key: NO_TUNNEL
         value: "true"
