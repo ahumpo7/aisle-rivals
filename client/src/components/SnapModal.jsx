@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Image as ImageIcon, X, CheckCircle2, AlertCircle, Clock, Send, Sparkles, MapPin, ShieldAlert, ArrowLeft, RefreshCw } from 'lucide-react';
 import { compressImage } from '../utils/imageCompressor';
 import { sounds } from '../utils/audio';
@@ -14,6 +14,15 @@ export default function SnapModal({ prompt, player, opponent, onClose, onSubmitP
   const galleryInputRef = useRef(null);
 
   const existingSubmission = player?.submissions?.[prompt.id];
+
+  // Clean up object URLs so GPU/RAM memory is never held
+  useEffect(() => {
+    return () => {
+      if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];

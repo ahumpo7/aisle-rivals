@@ -28,7 +28,11 @@ export async function compressImage(file, maxDimension = 1100, quality = 0.72) {
 
       return await new Promise((resolve) => {
         canvas.toBlob(
-          (blob) => resolve(blob || file),
+          (blob) => {
+            canvas.width = 0;
+            canvas.height = 0;
+            resolve(blob || file);
+          },
           'image/jpeg',
           quality
         );
@@ -64,7 +68,11 @@ export async function compressImage(file, maxDimension = 1100, quality = 0.72) {
       ctx.drawImage(img, 0, 0, width, height);
 
       canvas.toBlob(
-        (blob) => resolve(blob || file),
+        (blob) => {
+          canvas.width = 0;
+          canvas.height = 0;
+          resolve(blob || file);
+        },
         'image/jpeg',
         quality
       );
