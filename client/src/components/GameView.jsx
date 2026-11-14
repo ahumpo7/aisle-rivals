@@ -86,13 +86,17 @@ export default function GameView({
     <div className="max-w-md mx-auto p-3 sm:p-4 pb-24 space-y-4">
       {/* Top Bar with Options Menu */}
       <div className="flex items-center justify-between text-xs text-slate-400">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <span className="font-mono font-bold text-amber-400 bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700">
-            ROOM: {room.roomCode}
+            {room.roomCode}
+          </span>
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-lg bg-slate-800 text-slate-200 border border-slate-700">
+            <span>{room.themeIcon || '🎯'}</span>
+            <span className="truncate max-w-[95px]">{room.themeShortName || 'Hunt'}</span>
           </span>
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-emerald-400 font-medium">
-            {isCoop ? `Team Goal: ${teamVerifiedCount}/${targetWins}` : `Race to ${targetWins}!`}
+          <span className="text-emerald-400 font-medium text-[11px]">
+            {isCoop ? `${teamVerifiedCount}/${targetWins}` : `Goal: ${targetWins}`}
           </span>
         </div>
 
@@ -535,7 +539,13 @@ export default function GameView({
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="bg-slate-900 border border-slate-700 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl animate-in slide-in-from-bottom duration-200">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="font-bold text-white text-base">Game Controls</h3>
+              <div>
+                <h3 className="font-bold text-white text-base">Game Controls</h3>
+                <div className="text-xs text-amber-300 font-medium flex items-center gap-1 mt-0.5">
+                  <span>{room.themeIcon || '🎯'}</span>
+                  <span>{room.themeName || 'Scavenger Hunt'}</span>
+                </div>
+              </div>
               <button
                 onClick={() => setShowMenuModal(false)}
                 className="text-slate-400 hover:text-white p-1"

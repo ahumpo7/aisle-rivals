@@ -48,8 +48,8 @@ export default function GameOverModal({ room, player, onRematch, onLeaveToMainMe
           </h2>
           <p className="text-xs sm:text-sm font-bold opacity-90">
             {isCoop
-              ? `You conquered Walmart as a team with ${room.teamScore || 0} points!`
-              : isWinner ? "You're the Walmart Scavenger Champion!" : "Better luck next Walmart date night!"}
+              ? `You conquered ${room?.themeName || 'the hunt'} as a team with ${room?.teamScore || 0} points!`
+              : isWinner ? `You're the ${room?.themeShortName || 'Scavenger'} Champion!` : `Better luck next date night!`}
           </p>
         </div>
 

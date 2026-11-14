@@ -1,7 +1,15 @@
+process.env.NO_TUNNEL = 'true';
 const { io } = require('./client/node_modules/socket.io-client');
+const http = require('http');
 
 async function testGameFlow() {
-  console.log('🧪 Starting End-to-End Game Flow Simulation (Co-op Mode & Team Effort)...');
+  console.log('🧪 Starting End-to-End Game Flow Simulation (Multi-Theme & Co-Op Support)...');
+
+  // Start the actual server in-process if not already listening
+  const serverModule = require('./server/server');
+
+  // Wait a moment for server to bind
+  await new Promise((r) => setTimeout(r, 600));
 
   const serverUrl = 'http://localhost:3000';
 
@@ -12,24 +20,31 @@ async function testGameFlow() {
   await new Promise((resolve) => socket2.on('connect', resolve));
   console.log('✅ Both players connected via WebSocket');
 
-  // Step 1: Create room in Co-Op mode
+  // Test all themes are available via API
+  const httpRes = await fetch('http://localhost:3000/api/themes');
+  const themesJson = await httpRes.json();
+  console.log(`✅ Themes endpoint returned ${themesJson.themes.length} themes:`, themesJson.themes.map(t => `${t.icon} ${t.shortName}`).join(', '));
+  if (themesJson.themes.length < 5) throw new Error('Expected at least 5 themes');
+
+  // Step 1: Create room in Co-Op mode with 'nature' theme
   const createRes = await new Promise((resolve) => {
     socket1.emit('create_room', {
       hostName: 'Alex',
       hostAvatar: '🦊',
       targetWins: 5,
       deckSize: 20,
-      gameMode: 'coop'
+      gameMode: 'coop',
+      themeId: 'nature'
     }, resolve);
   });
 
   if (!createRes.success) throw new Error('Create room failed: ' + createRes.error);
   const roomCode = createRes.roomCode;
   const p1Id = createRes.playerId;
-  console.log(`✅ Co-op Room created: ${roomCode} (GameMode: ${createRes.room.gameMode}, Team Goal: ${createRes.room.targetWins})`);
+  console.log(`✅ Nature Co-op Room created: ${roomCode} (Theme: ${createRes.room.themeIcon} ${createRes.room.themeName}, GameMode: ${createRes.room.gameMode}, Goal: ${createRes.room.targetWins})`);
 
-  if (createRes.room.gameMode !== 'coop') {
-    throw new Error(`Expected gameMode 'coop', got ${createRes.room.gameMode}`);
+  if (createRes.room.themeId !== 'nature') {
+    throw new Error(`Expected themeId 'nature', got ${createRes.room.themeId}`);
   }
 
   // Step 2: Join room
@@ -42,18 +57,29 @@ async function testGameFlow() {
   });
   if (!joinRes.success) throw new Error('Join room failed: ' + joinRes.error);
   const p2Id = joinRes.playerId;
-  console.log(`✅ Player 2 (Sam) joined`);
+  console.log(`✅ Player 2 (Sam) joined Nature Hunt!`);
 
   // Step 3: Start game
   const startRes = await new Promise((resolve) => {
     socket1.emit('start_game', { roomCode, playerId: p1Id }, resolve);
   });
   if (!startRes.success) throw new Error('Start game failed: ' + startRes.error);
-  console.log(`✅ Co-Op Match started!`);
+  console.log(`✅ Match started with ${startRes.room.prompts.length} nature challenges!`);
 
+  // Step 4: Test item swapping in nature theme
+  const promptToSwap = startRes.room.prompts[1];
+  const swapRes = await new Promise((resolve) => {
+    socket1.emit('swap_item', {
+      roomCode,
+      playerId: p1Id,
+      promptId: promptToSwap.id
+    }, resolve);
+  });
+  if (!swapRes.success) throw new Error('Swap item failed: ' + swapRes.error);
+  console.log(`✅ Successfully swapped item: "${swapRes.oldPrompt.title}" -> "${swapRes.newPrompt.title}"`);
+
+  // Step 5: Player 1 submits proof for the team
   const firstPrompt = startRes.room.prompts[0];
-
-  // Step 4: Player 1 submits proof for the team
   const alertPromise = new Promise((resolve) => {
     socket2.on('partner_item_submitted', (data) => {
       console.log(`🔔 Player 2 received alert: ${data.message}`);
@@ -65,13 +91,13 @@ async function testGameFlow() {
     roomCode,
     playerId: p1Id,
     promptId: firstPrompt.id,
-    photoUrl: '/uploads/sample-pickle-cotton-candy.jpg',
-    caption: 'Found this weird item for our team goal!'
+    photoUrl: '/uploads/sample-nature-heart-rock.jpg',
+    caption: 'Found this heart-shaped rock on the trail for our team goal!'
   });
 
   await alertPromise;
 
-  // Step 5: Player 2 approves item for the team
+  // Step 6: Player 2 approves item for the team
   const approvalPromise = new Promise((resolve) => {
     socket1.on('item_verification_result', (data) => {
       console.log(`🎉 Verification received! Points: +${data.points}, Room team score: ${data.room.teamScore}`);
@@ -85,7 +111,7 @@ async function testGameFlow() {
     targetPlayerId: p1Id,
     promptId: firstPrompt.id,
     approved: true,
-    feedback: 'Awesome find for the team! Approved!'
+    feedback: 'Beautiful nature find for the team! Approved!'
   });
 
   const approvalResult = await approvalPromise;
@@ -94,9 +120,25 @@ async function testGameFlow() {
   }
   console.log(`✅ Team verified count is now ${approvalResult.room.teamVerifiedCount}/${approvalResult.room.targetWins} (Team Score: ${approvalResult.room.teamScore} pts)`);
 
+  // Step 7: Test City theme room creation
+  const createCityRes = await new Promise((resolve) => {
+    socket1.emit('create_room', {
+      hostName: 'Taylor',
+      hostAvatar: '🐯',
+      targetWins: 8,
+      deckSize: 20,
+      gameMode: 'versus',
+      themeId: 'city'
+    }, resolve);
+  });
+  if (!createCityRes.success || createCityRes.room.themeId !== 'city') {
+    throw new Error('City theme room creation failed');
+  }
+  console.log(`✅ City Stroll Versus Room created: ${createCityRes.roomCode} (Theme: ${createCityRes.room.themeIcon} ${createCityRes.room.themeName})`);
+
   socket1.disconnect();
   socket2.disconnect();
-  console.log('🏆 CO-OP TEAM EFFORT E2E TEST PASSED PERFECTLY!');
+  console.log('🏆 MULTI-THEME & CO-OP E2E TEST PASSED PERFECTLY!');
   process.exit(0);
 }
 

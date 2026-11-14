@@ -1,4 +1,4 @@
-const { HUNT_PROMPTS } = require('./huntPrompts');
+const { HUNT_PROMPTS, getTheme, getPromptsByTheme } = require('./huntPrompts');
 const crypto = require('crypto');
 const uuidv4 = () => crypto.randomUUID();
 
@@ -19,13 +19,16 @@ class GameManager {
     return code;
   }
 
-  createRoom(hostName, hostAvatar = '🦊', targetWins = 8, deckSize = 20, gameMode = 'coop') {
+  createRoom(hostName, hostAvatar = '🦊', targetWins = 8, deckSize = 20, gameMode = 'coop', themeId = 'supermarket') {
     const roomCode = this.generateRoomCode();
     const hostId = uuidv4();
 
-    // Select 20 prompts for the match deck (or up to HUNT_PROMPTS.length)
-    const shuffled = [...HUNT_PROMPTS].sort(() => 0.5 - Math.random());
-    const matchDeckSize = Math.min(deckSize || 20, HUNT_PROMPTS.length);
+    const selectedTheme = getTheme(themeId);
+    const themePrompts = getPromptsByTheme(selectedTheme.id);
+
+    // Select prompts for the match deck
+    const shuffled = [...themePrompts].sort(() => 0.5 - Math.random());
+    const matchDeckSize = Math.min(deckSize || 20, themePrompts.length);
     const selectedPrompts = shuffled.slice(0, matchDeckSize);
 
     const mode = gameMode === 'versus' ? 'versus' : 'coop';
@@ -35,6 +38,12 @@ class GameManager {
       createdAt: Date.now(),
       status: 'waiting', // waiting, in_progress, completed
       gameMode: mode, // 'coop' (team effort) or 'versus' (head-to-head)
+      themeId: selectedTheme.id,
+      themeName: selectedTheme.name,
+      themeShortName: selectedTheme.shortName,
+      themeIcon: selectedTheme.icon,
+      themeSubtitle: selectedTheme.subtitle,
+      themeBadgeColor: selectedTheme.badgeColor,
       deckSize: selectedPrompts.length,
       targetWins: Math.min(Number(targetWins) || 8, selectedPrompts.length),
       prompts: selectedPrompts,
@@ -58,7 +67,7 @@ class GameManager {
         {
           id: uuidv4(),
           type: 'room_created',
-          message: `${hostName || 'Partner 1'} created Room ${roomCode}! Mode: ${mode === 'coop' ? '🤝 Team Effort' : '⚔️ Head-to-Head'} (Goal: ${targetWins || 8} items).`,
+          message: `${hostName || 'Partner 1'} created Room ${roomCode}! Theme: ${selectedTheme.icon} ${selectedTheme.name} • Mode: ${mode === 'coop' ? '🤝 Team Effort' : '⚔️ Head-to-Head'} (Goal: ${targetWins || 8} items).`,
           timestamp: Date.now()
         }
       ]
@@ -160,11 +169,17 @@ class GameManager {
 
     const oldPrompt = room.prompts[promptIndex];
 
+    const pool = getPromptsByTheme(room.themeId || 'supermarket');
     const currentPromptIds = new Set(room.prompts.map((p) => p.id));
-    const availablePrompts = HUNT_PROMPTS.filter((p) => !currentPromptIds.has(p.id));
+    let availablePrompts = pool.filter((p) => !currentPromptIds.has(p.id));
+
+    // Fallback: If all prompts were already dealt, allow swapping to any other prompt in the theme
+    if (availablePrompts.length === 0) {
+      availablePrompts = pool.filter((p) => p.id !== oldPrompt.id);
+    }
 
     if (availablePrompts.length === 0) {
-      return { error: 'No more unused prompts in the master deck!' };
+      return { error: 'No replacement prompts available in this theme deck!' };
     }
 
     const newPrompt = availablePrompts[Math.floor(Math.random() * availablePrompts.length)];
@@ -395,6 +410,13 @@ class GameManager {
     room.teamScore = 0;
     room.teamVerifiedCount = 0;
     room.startedAt = Date.now();
+
+    // Re-shuffle a fresh match deck for the active theme
+    const pool = getPromptsByTheme(room.themeId || 'supermarket');
+    const shuffled = [...pool].sort(() => 0.5 - Math.random());
+    const matchDeckSize = Math.min(room.deckSize || 20, pool.length);
+    room.prompts = shuffled.slice(0, matchDeckSize);
+
     for (const pId in room.players) {
       room.players[pId].score = 0;
       room.players[pId].verifiedCount = 0;
@@ -404,7 +426,7 @@ class GameManager {
     room.activityLog.push({
       id: uuidv4(),
       type: 'game_reset',
-      message: `🔄 Game has been rematched! Scores reset. Go!`,
+      message: `🔄 Game has been rematched with fresh ${room.themeName} challenges! Scores reset. Go!`,
       timestamp: Date.now()
     });
 

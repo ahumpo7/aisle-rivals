@@ -8,6 +8,7 @@ const fs = require('fs');
 const os = require('os');
 const QRCode = require('qrcode');
 const gameManager = require('./gameManager');
+const { getAllThemes } = require('./huntPrompts');
 
 const app = express();
 const server = http.createServer(app);
@@ -99,6 +100,11 @@ app.get('/api/network-info', async (req, res) => {
   });
 });
 
+// API: Get all hunt themes
+app.get('/api/themes', (req, res) => {
+  res.json({ themes: getAllThemes() });
+});
+
 // API: Generate QR code for a specific room join link
 app.get('/api/room-qr/:roomCode', async (req, res) => {
   try {
@@ -147,9 +153,16 @@ app.post('/api/upload', upload.single('photo'), (req, res) => {
 // Socket.io Realtime Events
 io.on('connection', (socket) => {
   // Create Room
-  socket.on('create_room', ({ hostName, hostAvatar, targetWins, deckSize, gameMode }, callback) => {
+  socket.on('create_room', ({ hostName, hostAvatar, targetWins, deckSize, gameMode, themeId }, callback) => {
     try {
-      const result = gameManager.createRoom(hostName, hostAvatar, targetWins || 8, deckSize || 20, gameMode || 'coop');
+      const result = gameManager.createRoom(
+        hostName,
+        hostAvatar,
+        targetWins || 8,
+        deckSize || 20,
+        gameMode || 'coop',
+        themeId || 'supermarket'
+      );
       socket.join(result.roomCode);
       gameManager.setPlayerSocket(result.roomCode, result.playerId, socket.id);
       socket.roomCode = result.roomCode;
@@ -226,7 +239,7 @@ io.on('connection', (socket) => {
     io.to(roomCode.toUpperCase()).emit('item_swapped_alert', {
       message: `🔄 Challenge "${result.oldPrompt.title}" was swapped for "${result.newPrompt.title}"!`
     });
-    if (callback) callback({ success: true, room: result.room, newPrompt: result.newPrompt });
+    if (callback) callback({ success: true, room: result.room, oldPrompt: result.oldPrompt, newPrompt: result.newPrompt });
   });
 
   // Submit Item Proof

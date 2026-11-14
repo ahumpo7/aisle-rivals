@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Copy, Check, QrCode, Play, Users, Sparkles, ArrowRight, ArrowLeft, RefreshCw, ShoppingCart, Heart, Globe, Home } from 'lucide-react';
+import { Copy, Check, QrCode, Play, Users, Sparkles, ArrowRight, ArrowLeft, RefreshCw, ShoppingCart, Heart, Globe, Home, Compass } from 'lucide-react';
 import socket from '../utils/socket';
 import { sounds } from '../utils/audio';
+import { THEME_LIST, getThemeById } from '../utils/themes';
 
 const AVATARS = ['🦊', '🐼', '🐯', '🐰', '🐶', '🦄', '🐱', '🐻', '🐨', '🦁', '🐸', '🐧'];
 
@@ -10,6 +11,7 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
   const [name, setName] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState('🦊');
   const [joinCode, setJoinCode] = useState('');
+  const [selectedTheme, setSelectedTheme] = useState('supermarket');
   const [gameMode, setGameMode] = useState('coop'); // 'coop' or 'versus'
   const [targetWins, setTargetWins] = useState(8); // Target items to find
   const [loading, setLoading] = useState(false);
@@ -67,7 +69,8 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
       hostAvatar: selectedAvatar,
       targetWins: Number(targetWins),
       deckSize: 20, // 20 items per match
-      gameMode
+      gameMode,
+      themeId: selectedTheme
     }, (res) => {
       setLoading(false);
       if (res.success) {
@@ -159,9 +162,13 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-sm font-medium border border-blue-500/30">
             <Heart className="w-4 h-4 text-pink-500 fill-pink-500" /> Couples Scavenger Hunt
           </div>
-          <h1 className="text-3xl font-black tracking-tight text-white flex items-center justify-center gap-2">
-            Store Hunt Lobby
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center justify-center gap-2">
+            <span>{room.themeIcon || '🎯'}</span>
+            <span>{room.themeName || 'Hunt Lobby'}</span>
           </h1>
+          <p className="text-xs text-amber-300 font-medium">
+            {room.themeSubtitle || 'Find items & snap proof!'}
+          </p>
           <p className="text-sm text-slate-400">
             {bothReady ? 'Both partners connected! Ready to hunt.' : 'Share the code or QR with your partner!'}
           </p>
@@ -312,7 +319,9 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
               }`}
             >
               <Play className="w-5 h-5 fill-current" />
-              {bothReady ? 'START STORE HUNT!' : 'WAITING FOR PARTNER TO JOIN...'}
+              {bothReady
+                ? `START ${(room.themeShortName || 'HUNT').toUpperCase()}!`
+                : 'WAITING FOR PARTNER TO JOIN...'}
             </button>
             {!bothReady && (
               <p className="text-center text-xs text-slate-500">
@@ -336,13 +345,13 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
       {/* Brand & Hero */}
       <div className="text-center space-y-2">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 text-xs font-bold border border-amber-400/30">
-          <ShoppingCart className="w-3.5 h-3.5" /> WALMART DATE NIGHT EDITION
+          <Sparkles className="w-3.5 h-3.5" /> COUPLES DATE NIGHT ADVENTURES
         </div>
         <h1 className="text-3xl font-black tracking-tight text-white">
-          Aisle Rivals 🛒
+          Aisle Rivals 🎯
         </h1>
         <p className="text-sm text-slate-400">
-          The ultimate 2-player store scavenger hunt for couples. Hunt, snap, and verify each other's crazy finds!
+          The ultimate 2-player scavenger hunt for couples. Pick a themed adventure, hunt together or compete head-to-head, and verify each other's wild finds!
         </p>
       </div>
 
@@ -442,6 +451,56 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
               maxLength={6}
               className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white text-center font-mono font-black text-2xl tracking-widest placeholder-slate-600 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 transition"
             />
+          </div>
+        )}
+
+        {/* Theme Selection if Creating */}
+        {mode === 'create' && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                Choose Scavenger Hunt Theme
+              </label>
+              <span className="text-xs font-bold text-amber-400">
+                {THEME_LIST.find((t) => t.id === selectedTheme)?.shortName}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {THEME_LIST.map((th) => {
+                const isSelected = selectedTheme === th.id;
+                return (
+                  <button
+                    key={th.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTheme(th.id);
+                      sounds.playDing();
+                    }}
+                    className={`p-3 rounded-2xl border text-left transition relative overflow-hidden active:scale-98 ${
+                      isSelected
+                        ? `${th.borderActive} shadow-lg`
+                        : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-600'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <div className="flex items-center gap-1.5 font-black text-sm text-white">
+                        <span className="text-xl">{th.icon}</span>
+                        <span>{th.name}</span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${th.badgeStyle}`}>
+                        {th.badge}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-amber-300 font-semibold mb-1">
+                      {th.subtitle}
+                    </div>
+                    <div className="text-[11px] text-slate-300 leading-snug">
+                      {th.description}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
