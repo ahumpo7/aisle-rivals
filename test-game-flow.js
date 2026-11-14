@@ -136,6 +136,25 @@ async function testGameFlow() {
   }
   console.log(`✅ City Stroll Versus Room created: ${createCityRes.roomCode} (Theme: ${createCityRes.room.themeIcon} ${createCityRes.room.themeName})`);
 
+  // Step 8: Test Road Trip theme (Safety Enforced Co-Op Only)
+  const createRoadTripRes = await new Promise((resolve) => {
+    socket1.emit('create_room', {
+      hostName: 'Driver & Copilot',
+      hostAvatar: '🚗',
+      targetWins: 8,
+      deckSize: 20,
+      gameMode: 'versus', // Intentionally requested versus
+      themeId: 'roadtrip'
+    }, resolve);
+  });
+  if (!createRoadTripRes.success || createRoadTripRes.room.themeId !== 'roadtrip') {
+    throw new Error('Road Trip room creation failed');
+  }
+  if (createRoadTripRes.room.gameMode !== 'coop' || !createRoadTripRes.room.coopOnly) {
+    throw new Error(`Expected Road Trip to enforce gameMode 'coop' and coopOnly=true, got mode=${createRoadTripRes.room.gameMode}`);
+  }
+  console.log(`✅ Road Trip Safety Enforced! Mode: ${createRoadTripRes.room.gameMode} (coopOnly: ${createRoadTripRes.room.coopOnly}, Theme: ${createRoadTripRes.room.themeIcon} ${createRoadTripRes.room.themeName})`);
+
   socket1.disconnect();
   socket2.disconnect();
   console.log('🏆 MULTI-THEME & CO-OP E2E TEST PASSED PERFECTLY!');

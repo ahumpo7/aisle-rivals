@@ -1805,6 +1805,306 @@ const THEMES = {
         verificationCriteria: 'Cape flapping in nonexistent wind with proud hero grin.'
       }
     ]
+  },
+
+  roadtrip: {
+    id: 'roadtrip',
+    name: 'Road Trip & Highway Quest',
+    shortName: 'Road Trip',
+    subtitle: 'Highways, Billboards & Roadside Wonders',
+    icon: '🚗',
+    accentColor: 'from-cyan-600 to-blue-700',
+    badgeColor: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+    description: 'Weird roadside billboards, giant fiberglass statues, out-of-state plates, and wild gas station snacks. Passenger snaps — safety first!',
+    coopOnly: true,
+    prompts: [
+      {
+        id: 'weird-injury-billboard',
+        title: 'Aggressive Injury Lawyer Billboard',
+        icon: '⚖️',
+        category: 'Highway Sights',
+        badge: 'Legal Sledgehammer',
+        points: 130,
+        description: 'Spot a massive roadside billboard for a lawyer featuring a fierce nickname, an eyepatch, boxing gloves, or sledgehammer.',
+        hint: 'Interstate highways near city bypasses. Passenger duty only — driver keeps eyes on the road!',
+        verificationCriteria: 'Passenger captures photo while driver keeps both hands on the wheel.'
+      },
+      {
+        id: 'giant-roadside-attraction',
+        title: 'Giant Fiberglass Titan / Roadside Monster',
+        icon: '🦕',
+        category: 'Roadside Wonders',
+        badge: 'Fiberglass Giant',
+        points: 170,
+        description: 'Spot a comically gigantic roadside statue: Muffler Man, Paul Bunyan, giant dinosaur, giant peach, mammoth strawberry, or massive bull.',
+        hint: 'Outside souvenir shops, roadside diners, golf courses, or theme parks along secondary highways.',
+        verificationCriteria: 'Statue must be delightfully oversized.'
+      },
+      {
+        id: 'out-of-state-plate',
+        title: '1,000-Mile Out-of-State License Plate',
+        icon: '🚙',
+        category: 'License Plate Bingo',
+        badge: 'Long Hauler',
+        points: 140,
+        description: 'Spot a license plate from a state, province, or territory located at least 1,000 miles (or across the country) from where you are right now.',
+        hint: 'Look at passing minivans, RVs, and campers on major interstates.',
+        verificationCriteria: 'Plate state name must be clearly readable.'
+      },
+      {
+        id: 'hilarious-bumper-sticker',
+        title: 'Unhinged Highway Bumper Sticker',
+        icon: '🪧',
+        category: 'Highway Sights',
+        badge: 'Asphalt Philosopher',
+        points: 120,
+        description: 'Spot a car ahead of you with a bumper sticker featuring an absurd philosophical take, funny warning, or chaotic stick-figure family.',
+        hint: 'Rear bumpers of cars in slow lanes or rest stop parking.',
+        verificationCriteria: 'Bumper sticker text must be legible in frame.'
+      },
+      {
+        id: 'bizarre-truck-cargo',
+        title: 'Bizarre Flatbed Truck Cargo',
+        icon: '🚛',
+        category: 'Heavy Haulers',
+        badge: 'Oversized Load',
+        points: 150,
+        description: 'Pass a semi-truck carrying mind-boggling cargo: giant airplane wing, prefabricated house, giant pipe, military vehicle, or mysterious crate.',
+        hint: 'Right lane of freight shipping corridors.',
+        verificationCriteria: 'Photo must show the scale of the unusual cargo.'
+      },
+      {
+        id: 'oddly-named-town-exit',
+        title: '"Blink-and-You-Miss-It" Town Exit Sign',
+        icon: '🛣️',
+        category: 'Highway Sights',
+        badge: 'Geography Chuckle',
+        points: 130,
+        description: 'Find a green highway exit sign for a town with a funny, baffling, or delightful name (e.g. Peculiar, Boring, Hell, Climax, Intercourse, Normal).',
+        hint: 'Highway overhead exit signs or rural state route markers.',
+        verificationCriteria: 'Green exit sign name legible in photo.'
+      },
+      {
+        id: 'exotic-gas-station-jerky',
+        title: 'Exotic Gas Station Meat Stick / Jerky',
+        icon: '🥩',
+        category: 'Pit Stop Fuel',
+        badge: 'Carnivore Roulette',
+        points: 140,
+        description: 'Find a jerky stick or dried meat at a travel stop made from an animal you wouldn\'t normally expect (alligator, buffalo, elk, ostrich, rattlesnake).',
+        hint: 'Countertop spinner racks at highway truck stops.',
+        verificationCriteria: 'Photo of the jerky label showing the exotic animal name.'
+      },
+      {
+        id: 'mega-truck-stop-spectacle',
+        title: 'The Mega Travel Center / 100-Pump Oasis',
+        icon: '⛽',
+        category: 'Pit Stop Fuel',
+        badge: 'Highway Megalith',
+        points: 150,
+        description: 'Pull into a legendary travel center (Buc-ee\'s, Love\'s, Pilot Flying J) and capture the sea of gas pumps or mascot madness.',
+        hint: 'Major highway junction rest areas.',
+        verificationCriteria: 'Photo of the massive pump canopy or store front.'
+      },
+      {
+        id: 'scenic-bridge-or-tunnel',
+        title: 'Dramatic Bridge or Mountain Tunnel Crossing',
+        icon: '🌉',
+        category: 'Scenic Cruising',
+        badge: 'Engineering Feat',
+        points: 130,
+        description: 'Passenger captures a photo while crossing a high suspension bridge, river gorge, or heading into a dark mountain tunnel.',
+        hint: 'Passenger perspective through windshield as you approach the structure.',
+        verificationCriteria: 'Bridge architecture or tunnel entrance in focus.'
+      },
+      {
+        id: 'highway-car-karaoke',
+        title: 'Passenger Car Karaoke Duet',
+        icon: '🎤',
+        category: 'Couple Vibes',
+        badge: 'Dashboard Popstar',
+        points: 160,
+        description: 'Turn up your favorite road trip anthem and capture a short video or spirited photo of you two belting out the chorus together.',
+        hint: 'Passenger records selfie angle while driver keeps eyes forward and sings along.',
+        verificationCriteria: 'Energy and passionate car singing on full display.'
+      },
+      {
+        id: 'derelict-rusty-car-field',
+        title: 'Forgotten Classic Rust Car in Field',
+        icon: '🚜',
+        category: 'Roadside Wonders',
+        badge: 'Barn Find Legend',
+        points: 130,
+        description: 'Spot an old 1950s/60s car or tractor rusting away gracefully in a farmer\'s grassy pasture or behind a barn.',
+        hint: 'Rural country highways alongside open fields.',
+        verificationCriteria: 'Vintage patina car visible from the passenger window.'
+      },
+      {
+        id: 'wind-turbine-giants',
+        title: 'Giant Wind Turbine Blades Spinning',
+        icon: '💨',
+        category: 'Scenic Cruising',
+        badge: 'Wind Horizon',
+        points: 120,
+        description: 'Spot a field of towering modern white wind turbines slowly revolving across the distant hills.',
+        hint: 'Plains, ridges, or wide open valleys.',
+        verificationCriteria: 'Wind turbine blades clearly silhouetted against the sky.'
+      },
+      {
+        id: 'state-welcome-sign',
+        title: 'State or County "Welcome To" Sign',
+        icon: '🗺️',
+        category: 'Milestones',
+        badge: 'Border Crossing',
+        points: 160,
+        description: 'Snap the official landmark sign welcoming travelers to a new state or scenic county.',
+        hint: 'Right at the state line or river border.',
+        verificationCriteria: '"Welcome to [State]" lettering readable in photo.'
+      },
+      {
+        id: 'roadside-fruit-firework-shack',
+        title: 'Hand-Painted Produce / Fireworks Shack',
+        icon: '🍉',
+        category: 'Roadside Wonders',
+        badge: 'Rustic Capitalism',
+        points: 120,
+        description: 'Spot a rural roadside stand with hand-painted wooden signs advertising "FRESH PEACHES", "BOILED PEANUTS", or "MEGA FIREWORKS".',
+        hint: 'State highways and two-lane rural corridors.',
+        verificationCriteria: 'Handmade wooden signage visible.'
+      },
+      {
+        id: 'cursed-travel-pillow-gear',
+        title: 'Cursed Travel Pillow / Road Trip Gear',
+        icon: '😴',
+        category: 'Couple Vibes',
+        badge: 'Highway Slumber',
+        points: 140,
+        description: 'Photograph partner wearing a goofy neck pillow in an awkward position, wrapped in 3 travel blankets, or using a makeshift sunglasses sun-blocker.',
+        hint: 'Front passenger or back seat comfort setup.',
+        verificationCriteria: 'Partner looking hilarious and cozy.'
+      },
+      {
+        id: 'highway-cows-audience',
+        title: 'Highway Grazing Audience',
+        icon: '🐄',
+        category: 'Roadside Wonders',
+        badge: 'Moo Patrol',
+        points: 120,
+        description: 'Spot a group of cows, horses, or sheep standing right by the fence staring intently at passing highway traffic.',
+        hint: 'Pasture fences along rural highways.',
+        verificationCriteria: 'Animals looking directly toward the roadway.'
+      },
+      {
+        id: 'tourist-trap-countdown',
+        title: 'Countdown to Mystery Tourist Trap',
+        icon: '🏜️',
+        category: 'Highway Sights',
+        badge: 'Exit In 50 Miles',
+        points: 130,
+        description: 'Spot a series of billboards aggressively hyping a bizarre tourist trap (e.g. "SEE ROCK CITY", "THE MYSTERY HOLE", "LIVE ALLIGATORS NEXT EXIT").',
+        hint: 'Major tourist corridor interstates.',
+        verificationCriteria: 'Billboard promoting an eccentric destination.'
+      },
+      {
+        id: 'punny-semi-truck-fleet',
+        title: 'Funny Slogan on 18-Wheeler Mudflaps',
+        icon: '🚚',
+        category: 'Heavy Haulers',
+        badge: 'Trucker Wit',
+        points: 120,
+        description: 'Spot a funny slogan, character (Yosemite Sam "BACK OFF!"), or company pun printed on the back doors or mudflaps of a big rig.',
+        hint: 'Rear of tractor-trailers in traffic flow.',
+        verificationCriteria: 'Text or character on the truck rear clearly shown.'
+      },
+      {
+        id: 'front-seat-snack-cache',
+        title: 'The Holy Road Trip Snack Vault',
+        icon: '🍿',
+        category: 'Pit Stop Fuel',
+        badge: 'Sugar & Salt Fuel',
+        points: 130,
+        description: 'Photograph the front console or cup holders stuffed with road fuel: sunflower seeds, sour gummies, iced drinks, chips, and trail mix.',
+        hint: 'Center console between the seats.',
+        verificationCriteria: 'Impressive spread of road trip snacks displayed.'
+      },
+      {
+        id: 'asphalt-sunset-silhouette',
+        title: 'Asphalt Horizon Sunset Silhouette',
+        icon: '🌅',
+        category: 'Scenic Cruising',
+        badge: 'Golden Hour Highway',
+        points: 150,
+        description: 'Capture the golden hour sun setting directly ahead over the long, straight highway pavement with tail lights glowing.',
+        hint: 'Heading West during twilight.',
+        verificationCriteria: 'Sunset glow melting over the distant road.'
+      },
+      {
+        id: 'historic-highway-shield',
+        title: 'Historic Route Shield / Scenic Byway Marker',
+        icon: '🛡️',
+        category: 'Milestones',
+        badge: 'Classic Highway',
+        points: 130,
+        description: 'Spot a classic route shield sign (e.g. Historic Route 66, US Route 1, Blue Ridge Parkway, Lincoln Highway).',
+        hint: 'Shoulder posts along designated historic highway corridors.',
+        verificationCriteria: 'Historic shield emblem readable in photo.'
+      },
+      {
+        id: 'chaotic-roof-rack-tetris',
+        title: 'Chaotic Roof-Rack Packing Job',
+        icon: '🧳',
+        category: 'Highway Sights',
+        badge: 'Bungee Cord Faith',
+        points: 140,
+        description: 'Spot a car traveling with bicycles, kayaks, mattresses, or luggage strapped to the roof with suspicious amounts of duct tape or bungee cords.',
+        hint: 'Vehicles traveling ahead during holiday or weekend travel.',
+        verificationCriteria: 'Roof load arrangement clearly captured.'
+      },
+      {
+        id: 'quirky-diner-rooftop-icon',
+        title: 'Diner with Giant Object on the Roof',
+        icon: '🍔',
+        category: 'Roadside Wonders',
+        badge: 'Highway Architecture',
+        points: 140,
+        description: 'Spot a classic roadside diner or shop sporting a giant fiberglass hot dog, ice cream cone, donut, or bowling pin on its roof.',
+        hint: 'Off-highway main streets or older bypasses.',
+        verificationCriteria: 'Rooftop icon clearly visible.'
+      },
+      {
+        id: 'small-town-water-tower',
+        title: 'Small Town Water Tower with Name',
+        icon: '🗼',
+        category: 'Milestones',
+        badge: 'Civic Pride',
+        points: 120,
+        description: 'Spot a spherical or tank water tower standing tall over the highway proudly painted with the local town name.',
+        hint: 'Rising above tree lines near municipal centers.',
+        verificationCriteria: 'Water tower structure and town name legible.'
+      },
+      {
+        id: 'copilot-navigator-flex',
+        title: 'Co-Pilot GPS / Maps Mileage Flex',
+        icon: '📱',
+        category: 'Milestones',
+        badge: 'Miles To Go',
+        points: 130,
+        description: 'Passenger takes a photo of the phone navigation screen showing an epic journey (hundreds of miles or hours remaining on the route).',
+        hint: 'GPS route overview showing destination path.',
+        verificationCriteria: 'Passenger screen showing road journey stats.'
+      },
+      {
+        id: 'retro-neon-motel-sign',
+        title: 'Retro 1950s "VACANCY" Neon Sign',
+        icon: '🏨',
+        category: 'Roadside Wonders',
+        badge: 'Route 66 Motel',
+        points: 140,
+        description: 'Spot an old roadside motor inn or motel featuring a classic arrow neon sign or glowing "VACANCY" letters.',
+        hint: 'Along older highway strips and town entrance boulevards.',
+        verificationCriteria: 'Vintage motel sign artwork captured.'
+      }
+    ]
   }
 };
 
@@ -1825,6 +2125,7 @@ function getAllThemes() {
     accentColor: t.accentColor,
     badgeColor: t.badgeColor,
     description: t.description,
+    coopOnly: !!t.coopOnly,
     promptCount: t.prompts.length
   }));
 }

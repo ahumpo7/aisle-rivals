@@ -31,13 +31,17 @@ class GameManager {
     const matchDeckSize = Math.min(deckSize || 20, themePrompts.length);
     const selectedPrompts = shuffled.slice(0, matchDeckSize);
 
-    const mode = gameMode === 'versus' ? 'versus' : 'coop';
+    const isCoopOnly = selectedTheme.id === 'roadtrip' || selectedTheme.coopOnly;
+    const mode = isCoopOnly ? 'coop' : (gameMode === 'versus' ? 'versus' : 'coop');
+
+    const safetyNote = isCoopOnly ? ' (🚗 Driving Safety: Team Co-Op Only!)' : '';
 
     const room = {
       roomCode,
       createdAt: Date.now(),
       status: 'waiting', // waiting, in_progress, completed
       gameMode: mode, // 'coop' (team effort) or 'versus' (head-to-head)
+      coopOnly: isCoopOnly,
       themeId: selectedTheme.id,
       themeName: selectedTheme.name,
       themeShortName: selectedTheme.shortName,
@@ -67,7 +71,7 @@ class GameManager {
         {
           id: uuidv4(),
           type: 'room_created',
-          message: `${hostName || 'Partner 1'} created Room ${roomCode}! Theme: ${selectedTheme.icon} ${selectedTheme.name} • Mode: ${mode === 'coop' ? '🤝 Team Effort' : '⚔️ Head-to-Head'} (Goal: ${targetWins || 8} items).`,
+          message: `${hostName || 'Partner 1'} created Room ${roomCode}! Theme: ${selectedTheme.icon} ${selectedTheme.name} • Mode: ${mode === 'coop' ? '🤝 Team Effort' : '⚔️ Head-to-Head'}${safetyNote} (Goal: ${targetWins || 8} items).`,
           timestamp: Date.now()
         }
       ]

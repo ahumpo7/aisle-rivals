@@ -64,12 +64,15 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
     setLoading(true);
     sounds.playDing();
 
+    const activeThemeObj = THEME_LIST.find((t) => t.id === selectedTheme);
+    const effectiveGameMode = activeThemeObj?.coopOnly ? 'coop' : gameMode;
+
     socket.emit('create_room', {
       hostName: name.trim(),
       hostAvatar: selectedAvatar,
       targetWins: Number(targetWins),
       deckSize: 20, // 20 items per match
-      gameMode,
+      gameMode: effectiveGameMode,
       themeId: selectedTheme
     }, (res) => {
       setLoading(false);
@@ -474,6 +477,9 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
                     type="button"
                     onClick={() => {
                       setSelectedTheme(th.id);
+                      if (th.coopOnly) {
+                        setGameMode('coop');
+                      }
                       sounds.playDing();
                     }}
                     className={`p-3 rounded-2xl border text-left transition relative overflow-hidden active:scale-98 ${
@@ -507,50 +513,69 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
         {/* Game Mode Selection if Creating */}
         {mode === 'create' && (
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
-              Select Game Mode
-            </label>
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setGameMode('coop');
-                  sounds.playDing();
-                }}
-                className={`p-3 rounded-2xl border text-left transition ${
-                  gameMode === 'coop'
-                    ? 'bg-emerald-500/20 border-emerald-400 text-white shadow-lg ring-1 ring-emerald-400'
-                    : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 font-black text-sm text-emerald-400">
-                  <span>🤝 Team Effort</span>
-                </div>
-                <div className="text-[11px] text-slate-300 leading-snug mt-1">
-                  Work together as a couple to hunt and score points as a team!
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setGameMode('versus');
-                  sounds.playDing();
-                }}
-                className={`p-3 rounded-2xl border text-left transition ${
-                  gameMode === 'versus'
-                    ? 'bg-amber-500/20 border-amber-400 text-white shadow-lg ring-1 ring-amber-400'
-                    : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 font-black text-sm text-amber-400">
-                  <span>⚔️ Head-to-Head</span>
-                </div>
-                <div className="text-[11px] text-slate-300 leading-snug mt-1">
-                  Race against each other! First partner to the goal wins.
-                </div>
-              </button>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                Select Game Mode
+              </label>
+              {THEME_LIST.find((t) => t.id === selectedTheme)?.coopOnly && (
+                <span className="text-[10px] font-bold text-cyan-300 bg-cyan-500/20 px-2 py-0.5 rounded-full border border-cyan-500/30">
+                  🚗 Safety Locked: Team Only
+                </span>
+              )}
             </div>
+
+            {THEME_LIST.find((t) => t.id === selectedTheme)?.coopOnly ? (
+              <div className="p-3.5 rounded-2xl bg-cyan-950/50 border border-cyan-500/40 text-cyan-200 text-xs space-y-1.5 shadow-md">
+                <div className="flex items-center gap-2 font-black text-sm text-cyan-300">
+                  <span>🤝 Road Trip Co-Op (Team Effort Only)</span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  <b>Safety First:</b> Playing head-to-head while driving is unsafe. For Road Trip hunts, play strictly as a team — passenger navigates, spots, and snaps while driver keeps eyes on the road!
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGameMode('coop');
+                    sounds.playDing();
+                  }}
+                  className={`p-3 rounded-2xl border text-left transition ${
+                    gameMode === 'coop'
+                      ? 'bg-emerald-500/20 border-emerald-400 text-white shadow-lg ring-1 ring-emerald-400'
+                      : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 font-black text-sm text-emerald-400">
+                    <span>🤝 Team Effort</span>
+                  </div>
+                  <div className="text-[11px] text-slate-300 leading-snug mt-1">
+                    Work together as a couple to hunt and score points as a team!
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGameMode('versus');
+                    sounds.playDing();
+                  }}
+                  className={`p-3 rounded-2xl border text-left transition ${
+                    gameMode === 'versus'
+                      ? 'bg-amber-500/20 border-amber-400 text-white shadow-lg ring-1 ring-amber-400'
+                      : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 font-black text-sm text-amber-400">
+                    <span>⚔️ Head-to-Head</span>
+                  </div>
+                  <div className="text-[11px] text-slate-300 leading-snug mt-1">
+                    Race against each other! First partner to the goal wins.
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
         )}
 

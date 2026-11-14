@@ -125,6 +125,16 @@ export default function GameView({
         </div>
       </div>
 
+      {/* Road Trip Safety Banner */}
+      {room.themeId === 'roadtrip' && (
+        <div className="flex items-center gap-2 p-2.5 rounded-2xl bg-cyan-950/50 border border-cyan-500/40 text-cyan-200 text-xs shadow-md">
+          <span className="text-lg">🚗</span>
+          <span className="font-medium text-[11px] leading-snug">
+            <b className="text-cyan-300">Co-Pilot Safety Rule:</b> Passenger navigates & snaps challenges while driver keeps eyes on the road!
+          </span>
+        </div>
+      )}
+
       {/* Mode Scoreboard */}
       {isCoop ? (
         /* Couples Team Effort Scoreboard */

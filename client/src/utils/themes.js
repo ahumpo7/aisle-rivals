@@ -14,6 +14,19 @@ export const THEME_LIST = [
     description: 'Unholy flavor combinations, cursed clearance items, bizarre knock-offs, and accidental aisle renaissance.'
   },
   {
+    id: 'roadtrip',
+    name: 'Road Trip & Highway Quest',
+    shortName: 'Road Trip',
+    subtitle: 'Highways, Billboards & Roadside Wonders',
+    icon: '🚗',
+    badge: 'Team Safety Only',
+    accentColor: 'from-cyan-600 to-blue-700',
+    borderActive: 'border-cyan-400 ring-1 ring-cyan-400 bg-cyan-500/15',
+    badgeStyle: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+    description: 'Weird roadside billboards, giant fiberglass statues, out-of-state plates, and wild gas station snacks. Passenger snaps — safety first!',
+    coopOnly: true
+  },
+  {
     id: 'city',
     name: 'City & Downtown Stroll',
     shortName: 'City Stroll',
