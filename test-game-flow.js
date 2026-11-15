@@ -155,6 +155,23 @@ async function testGameFlow() {
   }
   console.log(`✅ Road Trip Safety Enforced! Mode: ${createRoadTripRes.room.gameMode} (coopOnly: ${createRoadTripRes.room.coopOnly}, Theme: ${createRoadTripRes.room.themeIcon} ${createRoadTripRes.room.themeName})`);
 
+  // Step 9: Test Casino & Boardwalk theme room creation
+  const createCasinoRes = await new Promise((resolve) => {
+    socket1.emit('create_room', {
+      hostName: 'Lucky Roller',
+      hostAvatar: '🎰',
+      targetWins: 8,
+      deckSize: 20,
+      gameMode: 'versus',
+      themeId: 'casino'
+    }, resolve);
+  });
+  if (!createCasinoRes.success || createCasinoRes.room.themeId !== 'casino') {
+    throw new Error('Casino theme room creation failed');
+  }
+  const casinoPrompt = createCasinoRes.room.prompts[0];
+  console.log(`✅ Casino & Boardwalk Room created: ${createCasinoRes.roomCode} (Theme: ${createCasinoRes.room.themeIcon} ${createCasinoRes.room.themeName}, Sample Challenge: "${casinoPrompt.title}")`);
+
   socket1.disconnect();
   socket2.disconnect();
   console.log('🏆 MULTI-THEME & CO-OP E2E TEST PASSED PERFECTLY!');

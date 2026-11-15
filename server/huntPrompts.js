@@ -2105,6 +2105,305 @@ const THEMES = {
         verificationCriteria: 'Vintage motel sign artwork captured.'
       }
     ]
+  },
+
+  casino: {
+    id: 'casino',
+    name: 'Casino & Boardwalk',
+    shortName: 'Casino & Boardwalk',
+    subtitle: 'Atlantic City, Neon Resorts & Boardwalk Fun',
+    icon: '🎰',
+    accentColor: 'from-amber-400 to-yellow-600',
+    badgeColor: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+    description: 'Salt water taffy, hypnotic casino carpets, Zoltar fortune tellers, high-roller poses, and seagulls eyeing your fries.',
+    prompts: [
+      {
+        id: 'salt-water-taffy-puller',
+        title: 'Mechanical Salt Water Taffy Puller',
+        icon: '🍬',
+        category: 'Boardwalk Eats',
+        badge: 'Fralinger\'s Gold',
+        points: 130,
+        description: 'Find a boardwalk sweet shop with a vintage mechanical arm pulling giant loops of colorful salt water taffy in the shop window.',
+        hint: 'Boardwalk candy stores (Fralinger\'s, James Candy, or Steel Pier sweet shops).',
+        verificationCriteria: 'Mechanical puller arms or fresh taffy boxes visible in photo.'
+      },
+      {
+        id: 'hypnotic-casino-carpet',
+        title: 'Dizzying / Psychedelic Casino Carpet',
+        icon: '🌀',
+        category: 'Casino Glam',
+        badge: 'Hypnotic Pattern',
+        points: 120,
+        description: 'Take a close-up photo of the wildest, most eye-straining geometric or floral casino carpet designed to keep people awake at 3 AM.',
+        hint: 'Near slot banks or hotel elevator lobbies in any major casino resort.',
+        verificationCriteria: 'Must be an undeniable, chaotic casino carpet pattern.'
+      },
+      {
+        id: 'zoltar-fortune-teller',
+        title: 'Zoltar / Mystic Fortune Teller Booth',
+        icon: '🔮',
+        category: 'Pier Curiosities',
+        badge: 'Wish Granted',
+        points: 150,
+        description: 'Find an animatronic glass booth fortune teller (Zoltar, Madame Esmeralda, or pirate seer) with glowing eyes and crystal ball.',
+        hint: 'Pier arcade entrances or boardwalk novelty shops.',
+        verificationCriteria: 'Animatronic mystic behind glass clearly shown.'
+      },
+      {
+        id: 'seagull-french-fry-heist',
+        title: 'Seagull Plotting a French Fry Heist',
+        icon: '🍟',
+        category: 'Boardwalk Wildlife',
+        badge: 'Winged Thief',
+        points: 140,
+        description: 'Capture a boardwalk seagull eyeing a tourist\'s fries, funnel cake, or pizza slice with total malicious determination.',
+        hint: 'Boardwalk benches, railing posts, or near outdoor fry stands.',
+        verificationCriteria: 'Seagull looking calculating and ready for robbery.'
+      },
+      {
+        id: 'high-roller-velvet-rope',
+        title: 'High-Roller VIP Velvet Rope Pose',
+        icon: '💎',
+        category: 'Casino Glam',
+        badge: 'Whale Status',
+        points: 160,
+        description: 'Pose beside the gold stanchions and velvet ropes outside the High Limit Salon looking like an international baccarat billionaire.',
+        hint: 'High-limit table or high-denomination slot lounge entrance.',
+        verificationCriteria: 'Partner strikes a wealthy, sophisticated pose by the velvet ropes.'
+      },
+      {
+        id: 'boardwalk-rolling-chair',
+        title: 'Iconic Rolling Chair / Tram Car',
+        icon: '🦽',
+        category: 'AC Heritage',
+        badge: 'Boardwalk Transit',
+        points: 130,
+        description: 'Spot an official Atlantic City wicker rolling chair being pushed along the wooden planks, or the iconic passenger tram car.',
+        hint: 'Rolling down the center of the wooden boardwalk.',
+        verificationCriteria: 'Historic wicker chair or tram car clearly in frame.'
+      },
+      {
+        id: 'powdered-sugar-blizzard',
+        title: 'The Powdered Sugar Funnel Cake Blizzard',
+        icon: '🍩',
+        category: 'Boardwalk Eats',
+        badge: 'Sugar Avalanche',
+        points: 140,
+        description: 'Find a fresh funnel cake or fried Oreos buried under a mountain of powdered sugar so thick you cough just looking at it.',
+        hint: 'Boardwalk fry windows or pier snack stands.',
+        verificationCriteria: 'Generous snowfall of white sugar clearly documented.'
+      },
+      {
+        id: 'novelty-pop-culture-slot',
+        title: 'Unhinged Pop-Culture Slot Machine',
+        icon: '🎰',
+        category: 'Casino Glam',
+        badge: 'Max Bet Wonder',
+        points: 130,
+        description: 'Find a massive themed slot machine based on an absurd celebrity, movie, or TV show (Britney Spears, Willy Wonka, Judge Judy, Buffalo Gold).',
+        hint: 'Main casino floor slot aisles.',
+        verificationCriteria: 'Slot machine topper and themed graphics in focus.'
+      },
+      {
+        id: 'steel-pier-ocean-ride',
+        title: 'Ferris Wheel / Pier Coaster Over Ocean',
+        icon: '🎡',
+        category: 'Pier Curiosities',
+        badge: 'Over The Atlantic',
+        points: 140,
+        description: 'Capture a photo of the Steel Pier giant Observation Wheel or amusement ride extending out over the breaking Atlantic waves.',
+        hint: 'Steel Pier entrance or beach view looking up at the pier.',
+        verificationCriteria: 'Amusement wheel or coaster frame silhouetted against the sky/ocean.'
+      },
+      {
+        id: 'arcade-ticket-avalanche',
+        title: 'Arcade Skee-Ball Ticket Avalanche',
+        icon: '🎟️',
+        category: 'Boardwalk Games',
+        badge: 'Ticket Millionaire',
+        points: 130,
+        description: 'Find a player or partner holding a ridiculously long snake of red paper arcade tickets won from Skee-Ball or coin pushers.',
+        hint: 'Boardwalk arcade ticket redemption counters.',
+        verificationCriteria: 'Streaming ribbon of tickets shown.'
+      },
+      {
+        id: 'comically-oversized-plush',
+        title: 'Comically Massive Boardwalk Carnival Plush',
+        icon: '🧸',
+        category: 'Boardwalk Games',
+        badge: 'Ring Toss Champion',
+        points: 150,
+        description: 'Spot someone walking the boards carrying a 6-foot stuffed Pikachu, neon tiger, or giant plush donut won at a carnival game.',
+        hint: 'Carnival midway game booths along the pier.',
+        verificationCriteria: 'Hold or stand next to the giant creature to demonstrate scale.'
+      },
+      {
+        id: 'towering-neon-casino-sign',
+        title: 'Towering Neon Casino Resort Marquee',
+        icon: '✨',
+        category: 'AC Heritage',
+        badge: 'Vegas of the East',
+        points: 130,
+        description: 'Photograph the glowing neon sign of a legendary resort (Hard Rock guitar, Caesars chariot, Tropicana palms, Borgata glass, Ocean tower).',
+        hint: 'Boardwalk facade or resort entrance plaza.',
+        verificationCriteria: 'Resort name and glowing neon branding clearly framed.'
+      },
+      {
+        id: 'free-casino-floor-drink',
+        title: 'Complimentary Cocktail in Tiny Plastic Cup',
+        icon: '🍸',
+        category: 'Casino Glam',
+        badge: 'Comped Royalty',
+        points: 120,
+        description: 'Pose proudly with a complimentary drink or coffee served in a classic tiny plastic casino cup while playing a machine.',
+        hint: 'Casino floor cocktail waitress service.',
+        verificationCriteria: 'Tiny cup and casino floor backdrop visible.'
+      },
+      {
+        id: 'infinite-wooden-planks',
+        title: 'The Infinite Boardwalk Planks Vista',
+        icon: '🪵',
+        category: 'AC Heritage',
+        badge: 'Plank Walker',
+        points: 120,
+        description: 'Take a cinematic vanishing-point photo looking down the historic herringbone wooden planks stretching into the ocean breeze.',
+        hint: 'Look straight down the boardwalk corridor at a quiet angle.',
+        verificationCriteria: 'Wood herringbone pattern and endless boardwalk perspective.'
+      },
+      {
+        id: 'airbrushed-souvenir-hoodie',
+        title: 'Airbrushed Souvenir Shirt / License Plate',
+        icon: '🎨',
+        category: 'Pier Curiosities',
+        badge: 'Boardwalk Style',
+        points: 130,
+        description: 'Find a boardwalk stall displaying custom airbrushed hoodies with neon bubble letters, spray-painted dolphins, or romantic couples names.',
+        hint: 'Souvenir T-shirt shops along the boards.',
+        verificationCriteria: 'Airbrush rack and custom neon lettering in photo.'
+      },
+      {
+        id: 'dice-or-roulette-display',
+        title: 'Giant Golden Dice or Roulette Shrine',
+        icon: '🎲',
+        category: 'Casino Glam',
+        badge: 'Lucky Roll',
+        points: 130,
+        description: 'Find an oversized decorative pair of golden dice, a giant roulette wheel sculpture, or a casino entrance photo-op.',
+        hint: 'Casino entry rotundas, player club desks, or hotel lobbies.',
+        verificationCriteria: 'Dice or gaming sculpture clearly showcased.'
+      },
+      {
+        id: 'boardwalk-fudge-slab',
+        title: 'Giant Slab of Fresh Boardwalk Fudge',
+        icon: '🍫',
+        category: 'Boardwalk Eats',
+        badge: 'Confection King',
+        points: 120,
+        description: 'Photograph a mouthwatering marble table loaded with freshly poured chocolate, peanut butter, or vanilla fudge being sliced with paddles.',
+        hint: 'Fudge counters in historic candy shoppes.',
+        verificationCriteria: 'Fresh fudge slabs and price tags visible.'
+      },
+      {
+        id: 'buffet-pyramid-plate',
+        title: 'Architectural Casino Buffet Plate',
+        icon: '🦞',
+        category: 'Casino Glam',
+        badge: 'All You Can Eat',
+        points: 160,
+        description: 'Photograph a plate engineered into an impossibly towering pyramid of crab legs, carved roast, dumplings, and miniature cakes.',
+        hint: 'Resort buffet dining room or food hall showcase.',
+        verificationCriteria: 'Plate must show impressive structural food balance.'
+      },
+      {
+        id: 'superstitious-spin-slap',
+        title: 'The Superstitious Button Press',
+        icon: '🍀',
+        category: 'Casino Glam',
+        badge: 'Lady Luck Pray',
+        points: 140,
+        description: 'Photograph partner pressing the slot machine SPIN button with maximum theatrical superstition (eyes squeezed shut, lucky charm rubbing, fingers crossed).',
+        hint: 'Any penny or nickel slot machine.',
+        verificationCriteria: 'Partner\'s hopeful, dramatic facial expression captured.'
+      },
+      {
+        id: 'beach-under-pier-romance',
+        title: 'Under the Boardwalk Ocean Waves',
+        icon: '🌊',
+        category: 'Couples Special',
+        badge: 'Under The Boardwalk',
+        points: 170,
+        description: 'Step down onto the sand to capture waves crashing between the weathered wooden pilings under the boardwalk or pier.',
+        hint: 'Beach stairs next to Steel Pier or Central Pier.',
+        verificationCriteria: 'Wooden pilings, sand, and Atlantic surf in frame.'
+      },
+      {
+        id: 'lucky-penny-floor-find',
+        title: 'The "My Only Win Today" Lucky Penny',
+        icon: '🪙',
+        category: 'Casino Glam',
+        badge: 'Break Even',
+        points: 130,
+        description: 'Spot a lone penny, token, or coin dropped on the wooden boardwalk or casino floor. Pose with it like you just struck the jackpot.',
+        hint: 'Look down along boardwalk cracks or near cashout kiosks.',
+        verificationCriteria: 'Coin found and triumphant victory grin.'
+      },
+      {
+        id: 'caricature-artist-stand',
+        title: 'Boardwalk Caricature Artist Stand',
+        icon: '🎭',
+        category: 'Pier Curiosities',
+        badge: 'Big Head Little Body',
+        points: 120,
+        description: 'Find a caricature artist booth displaying funny exaggerated drawings of couples with gigantic heads riding roller coasters.',
+        hint: 'Open-air booths on the boardwalk or pier entry.',
+        verificationCriteria: 'Humorous cartoon couples on display.'
+      },
+      {
+        id: 'no-feeding-seagulls-warning',
+        title: '"Do Not Feed Gulls - $500 Fine" Sign',
+        icon: '⚠️',
+        category: 'Boardwalk Wildlife',
+        badge: 'Official Ordinance',
+        points: 120,
+        description: 'Find an official city warning sign forbidding feeding seagulls under threat of a hefty municipal fine.',
+        hint: 'Attached to boardwalk lamp posts or trash bins.',
+        verificationCriteria: 'Ordinance sign and fine amount readable in photo.'
+      },
+      {
+        id: 'classic-pinball-or-claw',
+        title: 'Retro Neon Pinball / Claw Machine',
+        icon: '🕹️',
+        category: 'Boardwalk Games',
+        badge: 'Silverball Wizard',
+        points: 130,
+        description: 'Find a glowing vintage pinball table or classic claw crane game with blinking incandescent bulbs.',
+        hint: 'Boardwalk arcades (Lucky Snake, Central Pier, or Steel Pier arcade).',
+        verificationCriteria: 'Pinball playfield or crane claw captured in action.'
+      },
+      {
+        id: 'roman-bust-rockstar-monument',
+        title: 'Pose with Faux Roman Bust or Guitar Shrine',
+        icon: '🏛️',
+        category: 'Casino Glam',
+        badge: 'Casino Pantheon',
+        points: 150,
+        description: 'Strike a matching pose beside a Roman statue at Caesars, a giant rock guitar at Hard Rock, or an ornate fountain at Tropicana.',
+        hint: 'Resort lobbies, shopping plazas, or hotel corridors.',
+        verificationCriteria: 'Partner matching the pose of the statue or monument.'
+      },
+      {
+        id: 'sunset-over-atlantic-planks',
+        title: 'Golden Hour Planks & Ocean Horizon',
+        icon: '🌅',
+        category: 'Couples Special',
+        badge: 'Boardwalk Sunset',
+        points: 180,
+        description: 'Capture a gorgeous couples photo on the boards as the Atlantic evening breeze sets in and the casino neon begins to glow.',
+        hint: 'Boardwalk railing facing the beach during twilight.',
+        verificationCriteria: 'Both partners looking wonderful with the evening boardwalk glow.'
+      }
+    ]
   }
 };
 

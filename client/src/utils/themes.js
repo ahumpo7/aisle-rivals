@@ -14,6 +14,18 @@ export const THEME_LIST = [
     description: 'Unholy flavor combinations, cursed clearance items, bizarre knock-offs, and accidental aisle renaissance.'
   },
   {
+    id: 'casino',
+    name: 'Casino & Boardwalk',
+    shortName: 'Casino & Boardwalk',
+    subtitle: 'Atlantic City, Neon Resorts & Boardwalk Fun',
+    icon: '🎰',
+    badge: 'Boardwalk Glam',
+    accentColor: 'from-amber-400 to-yellow-600',
+    borderActive: 'border-amber-400 ring-1 ring-amber-400 bg-amber-500/15',
+    badgeStyle: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+    description: 'Salt water taffy, hypnotic casino carpets, Zoltar fortune tellers, high-roller poses, and seagulls eyeing your fries.'
+  },
+  {
     id: 'roadtrip',
     name: 'Road Trip & Highway Quest',
     shortName: 'Road Trip',
