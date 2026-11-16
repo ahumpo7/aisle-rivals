@@ -13,7 +13,8 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
   const [joinCode, setJoinCode] = useState('');
   const [selectedTheme, setSelectedTheme] = useState('supermarket');
   const [gameMode, setGameMode] = useState('coop'); // 'coop' or 'versus'
-  const [targetWins, setTargetWins] = useState(8); // Target items to find
+  const [boardFormat, setBoardFormat] = useState('standard'); // 'standard' or 'bingo'
+  const [targetWins, setTargetWins] = useState(8); // Target items to find (or lines for bingo)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
@@ -90,7 +91,9 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
       targetWins: Number(targetWins),
       deckSize: 20, // 20 items per match
       gameMode: effectiveGameMode,
-      themeId: selectedTheme
+      themeId: selectedTheme,
+      boardFormat: boardFormat,
+      isBingo: boardFormat === 'bingo'
     }, (res) => {
       setLoading(false);
       if (res.success) {
@@ -263,29 +266,40 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
             <span className="flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-amber-400" /> Match Mode:
             </span>
-            <span className={`px-2.5 py-0.5 rounded-lg font-black text-xs ${
-              room.gameMode === 'bingo'
-                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                : room.gameMode === 'coop'
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-            }`}>
-              {room.gameMode === 'bingo' ? '🎯 3x3 Bingo Faceoff' : room.gameMode === 'coop' ? '🤝 Team Effort' : '⚔️ Head-to-Head'}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className={`px-2.5 py-0.5 rounded-lg font-black text-xs ${
+                room.gameMode === 'coop'
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                  : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+              }`}>
+                {room.gameMode === 'coop' ? '🤝 Team Effort' : '⚔️ Head-to-Head'}
+              </span>
+              <span className={`px-2 py-0.5 rounded-lg font-black text-xs ${
+                room.isBingo
+                  ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                  : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+              }`}>
+                {room.isBingo ? '🎯 3x3 Bingo' : '📋 List Hunt'}
+              </span>
+            </div>
           </div>
           <div className="flex items-center justify-between text-slate-300">
             <span>{room.gameMode === 'coop' ? 'Team Objective:' : 'Win Condition:'}</span>
             <span className="px-2.5 py-1 rounded-lg bg-blue-600/30 text-blue-300 font-bold border border-blue-500/30">
-              {room.gameMode === 'bingo'
-                ? (room.targetWins === 9 ? 'Full 9-Square Blackout!' : `First to Complete ${room.targetWins} Line(s)!`)
+              {room.isBingo
+                ? (room.targetWins === 9
+                    ? 'Full 9-Square Blackout!'
+                    : `${room.gameMode === 'coop' ? 'Complete' : 'First to Complete'} ${room.targetWins} Line(s)!`)
                 : room.gameMode === 'coop'
                 ? `Find ${room.targetWins} Items Together!`
                 : `First to ${room.targetWins} Verified Items!`}
             </span>
           </div>
           <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-700/50">
-            {room.gameMode === 'bingo'
-              ? '🎯 Race against your partner on a 3x3 grid! Complete a row, column, or diagonal to shout BINGO and win!'
+            {room.isBingo && room.gameMode === 'coop'
+              ? '🤝 Team Bingo: Work together on the 3x3 card! Both partners\' verified finds count towards completing rows, columns, or blackout!'
+              : room.isBingo
+              ? '🎯 Bingo Faceoff: Race against your partner on a 3x3 grid! First to complete the target lines or blackout wins!'
               : room.gameMode === 'coop'
               ? '🤝 Divide and conquer! When you snap an item, your partner verifies it to score points for your team!'
               : '⚔️ Racing against each other! When you snap an item, your partner verifies it to award you points!'}
@@ -570,12 +584,12 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
           </div>
         )}
 
-        {/* Game Mode Selection if Creating */}
+        {/* Game Mode (Match Style) Selection if Creating */}
         {mode === 'create' && (
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
-                Game Mode
+                1. Match Style
               </label>
               {THEME_LIST.find((t) => t.id === selectedTheme)?.coopOnly && (
                 <span className="text-[10px] font-bold text-cyan-300 bg-cyan-500/20 px-2 py-0.5 rounded-full border border-cyan-500/30">
@@ -592,62 +606,94 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
                 </span>
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => {
                     setGameMode('coop');
-                    setTargetWins(8);
                     sounds.playDing();
                   }}
-                  className={`p-2 rounded-xl border text-center transition ${
+                  className={`p-2.5 rounded-xl border text-center transition ${
                     gameMode === 'coop'
                       ? 'bg-emerald-500/20 border-emerald-400 text-white shadow ring-1 ring-emerald-400'
                       : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  <div className="text-base">🤝</div>
-                  <div className="font-bold text-[11px] text-emerald-400 leading-tight mt-0.5">Team Effort</div>
-                  <div className="text-[9px] text-slate-300 leading-tight mt-0.5">Co-Op Goal</div>
+                  <div className="text-lg">🤝</div>
+                  <div className="font-bold text-xs text-emerald-400 leading-tight mt-0.5">Team Effort</div>
+                  <div className="text-[10px] text-slate-300 leading-tight mt-0.5">Co-Op Partnership</div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => {
                     setGameMode('versus');
-                    setTargetWins(8);
                     sounds.playDing();
                   }}
-                  className={`p-2 rounded-xl border text-center transition ${
+                  className={`p-2.5 rounded-xl border text-center transition ${
                     gameMode === 'versus'
                       ? 'bg-amber-500/20 border-amber-400 text-white shadow ring-1 ring-amber-400'
                       : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  <div className="text-base">⚔️</div>
-                  <div className="font-bold text-[11px] text-amber-400 leading-tight mt-0.5">Head-to-Head</div>
-                  <div className="text-[9px] text-slate-300 leading-tight mt-0.5">First to Goal</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setGameMode('bingo');
-                    setTargetWins(1); // Default to 1 line
-                    sounds.playDing();
-                  }}
-                  className={`p-2 rounded-xl border text-center transition ${
-                    gameMode === 'bingo'
-                      ? 'bg-purple-500/20 border-purple-400 text-white shadow ring-1 ring-purple-400'
-                      : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <div className="text-base">🎯</div>
-                  <div className="font-bold text-[11px] text-purple-400 leading-tight mt-0.5">Bingo Mode</div>
-                  <div className="text-[9px] text-slate-300 leading-tight mt-0.5">3x3 Grid Race</div>
+                  <div className="text-lg">⚔️</div>
+                  <div className="font-bold text-xs text-amber-400 leading-tight mt-0.5">Head-to-Head</div>
+                  <div className="text-[10px] text-slate-300 leading-tight mt-0.5">Competitive Battle</div>
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Board / Format Selection (Classic List vs 3x3 Bingo Card) */}
+        {mode === 'create' && (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
+                2. Challenge Format
+              </label>
+              <span className="text-[11px] font-bold text-purple-400">
+                {boardFormat === 'bingo' ? '🎯 3x3 Bingo Card' : '📋 Classic List'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setBoardFormat('standard');
+                  setTargetWins(8);
+                  sounds.playDing();
+                }}
+                className={`p-2 rounded-xl border text-center transition ${
+                  boardFormat === 'standard'
+                    ? 'bg-blue-600/30 border-blue-400 text-white shadow ring-1 ring-blue-400'
+                    : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <div className="text-base">📋</div>
+                <div className="font-bold text-xs text-blue-300 leading-tight mt-0.5">Classic List</div>
+                <div className="text-[9px] text-slate-400 leading-tight mt-0.5">Find item targets</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setBoardFormat('bingo');
+                  setTargetWins(1);
+                  sounds.playDing();
+                }}
+                className={`p-2 rounded-xl border text-center transition ${
+                  boardFormat === 'bingo'
+                    ? 'bg-purple-600/30 border-purple-400 text-white shadow ring-1 ring-purple-400'
+                    : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <div className="text-base">🎯</div>
+                <div className="font-bold text-xs text-purple-300 leading-tight mt-0.5">3x3 Bingo Card</div>
+                <div className="text-[9px] text-slate-400 leading-tight mt-0.5">Rows, cols & diagonals</div>
+              </button>
+            </div>
           </div>
         )}
 
@@ -656,19 +702,21 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
-                {gameMode === 'bingo' ? 'Bingo Target (Win Condition)' : gameMode === 'coop' ? 'Team Target (Find Together)' : 'Win Condition (First Partner)'}
+                3. {boardFormat === 'bingo'
+                  ? (gameMode === 'coop' ? 'Team Bingo Goal' : 'Bingo Race Target')
+                  : (gameMode === 'coop' ? 'Team Target (Find Together)' : 'Win Condition (First Partner)')}
               </label>
               <span className="text-xs font-bold text-amber-400">
-                {gameMode === 'bingo'
-                  ? (targetWins === 9 ? 'Full 9 Blackout' : `${targetWins} Line(s) to Win`)
-                  : gameMode === 'coop' ? `Goal: ${targetWins} Items` : `First to ${targetWins}`}
+                {boardFormat === 'bingo'
+                  ? (targetWins === 9 ? 'Full 9 Blackout' : `${targetWins} Line(s)`)
+                  : (gameMode === 'coop' ? `Goal: ${targetWins} Items` : `First to ${targetWins}`)}
               </span>
             </div>
 
-            {gameMode === 'bingo' ? (
+            {boardFormat === 'bingo' ? (
               <div className="grid grid-cols-3 gap-1.5">
                 {[
-                  { num: 1, label: '1 Line', desc: 'Row/Col/Diag' },
+                  { num: 1, label: '1 Line', desc: 'Any Row/Col/Diag' },
                   { num: 2, label: '2 Lines', desc: 'Double Bingo' },
                   { num: 9, label: 'Blackout', desc: 'All 9 Squares' }
                 ].map((opt) => (

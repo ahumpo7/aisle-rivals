@@ -153,7 +153,7 @@ app.post('/api/upload', upload.single('photo'), (req, res) => {
 // Socket.io Realtime Events
 io.on('connection', (socket) => {
   // Create Room
-  socket.on('create_room', ({ hostName, hostAvatar, targetWins, deckSize, gameMode, themeId }, callback) => {
+  socket.on('create_room', ({ hostName, hostAvatar, targetWins, deckSize, gameMode, themeId, boardFormat, isBingo }, callback) => {
     try {
       const result = gameManager.createRoom(
         hostName,
@@ -161,7 +161,8 @@ io.on('connection', (socket) => {
         targetWins || 8,
         deckSize || 20,
         gameMode || 'coop',
-        themeId || 'supermarket'
+        themeId || 'supermarket',
+        boardFormat || (isBingo ? 'bingo' : (gameMode === 'bingo' ? 'bingo' : 'standard'))
       );
       socket.join(result.roomCode);
       gameManager.setPlayerSocket(result.roomCode, result.playerId, socket.id);

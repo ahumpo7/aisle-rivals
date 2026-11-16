@@ -289,25 +289,26 @@ async function testGameFlow() {
   await bingoPromise;
   console.log(`✅ 3x3 Bingo claimed and bonus points awarded (+300 pts)!`);
 
-  // Step 16: Test Dedicated BINGO GAME MODE Setup and Win Condition
-  const createBingoRoomRes = await new Promise((resolve) => {
+  // Step 16: Test BINGO Option in Head-to-Head Mode
+  const createVersusBingoRes = await new Promise((resolve) => {
     socket1.emit('create_room', {
       hostName: 'Bingo Host',
       hostAvatar: '🎯',
       targetWins: 1, // 1 Line to win
       deckSize: 9,
-      gameMode: 'bingo',
+      gameMode: 'versus',
+      boardFormat: 'bingo',
       themeId: 'supermarket'
     }, resolve);
   });
-  if (!createBingoRoomRes.success || createBingoRoomRes.room.gameMode !== 'bingo') {
-    throw new Error('Bingo Game Mode room creation failed');
+  if (!createVersusBingoRes.success || !createVersusBingoRes.room.isBingo || createVersusBingoRes.room.gameMode !== 'versus') {
+    throw new Error('Versus Bingo Mode room creation failed');
   }
-  const bingoRoomCode = createBingoRoomRes.roomCode;
-  const bingoP1Id = createBingoRoomRes.playerId;
-  console.log(`✅ Dedicated Bingo Mode Room Created: ${bingoRoomCode} (GameMode: ${createBingoRoomRes.room.gameMode}, Target: ${createBingoRoomRes.room.targetWins} Line, DeckSize: ${createBingoRoomRes.room.prompts.length})`);
+  const bingoRoomCode = createVersusBingoRes.roomCode;
+  const bingoP1Id = createVersusBingoRes.playerId;
+  console.log(`✅ Head-to-Head Bingo Room Created: ${bingoRoomCode} (GameMode: ${createVersusBingoRes.room.gameMode}, BoardFormat: ${createVersusBingoRes.room.boardFormat}, Target: ${createVersusBingoRes.room.targetWins} Line)`);
 
-  // Join and start Bingo match
+  // Join and start Versus Bingo match
   const joinBingoRes = await new Promise((resolve) => {
     socket2.emit('join_room', {
       roomCode: bingoRoomCode,
@@ -324,7 +325,7 @@ async function testGameFlow() {
   if (!startBingoRes.success || startBingoRes.room.prompts.length !== 9) {
     throw new Error('Bingo match failed to start with exact 3x3 (9 items) grid');
   }
-  console.log(`✅ Bingo Match Started with 3x3 (9 items) Grid! First to complete 1 line wins!`);
+  console.log(`✅ Head-to-Head Bingo Match Started with 3x3 (9 items) Grid! First to complete 1 line wins!`);
 
   // Simulate completing Row 1 (items 0, 1, 2)
   const bingoPrompts = startBingoRes.room.prompts;
@@ -353,11 +354,113 @@ async function testGameFlow() {
 
     if (i === 2) {
       if (verifyRes.room.status !== 'completed' || verifyRes.room.winner.id !== bingoP1Id) {
-        throw new Error('Expected 1-line Bingo completion to trigger match win!');
+        throw new Error('Expected 1-line Versus Bingo completion to trigger match win!');
       }
-      console.log(`🏆 BINGO VICTORY TRIGGERED! Player 1 completed Row 1 (3-in-a-row) and won the match!`);
+      console.log(`🏆 HEAD-TO-HEAD BINGO VICTORY TRIGGERED! Player 1 completed Row 1 (3-in-a-row) and won the match!`);
     }
   }
+
+  // Step 17: Test BINGO Option in Team Effort (Co-Op) Battle Mode
+  const createTeamBingoRes = await new Promise((resolve) => {
+    socket1.emit('create_room', {
+      hostName: 'Team Host',
+      hostAvatar: '🦊',
+      targetWins: 1, // 1 Line together to win
+      deckSize: 9,
+      gameMode: 'coop',
+      boardFormat: 'bingo',
+      themeId: 'nature'
+    }, resolve);
+  });
+  if (!createTeamBingoRes.success || !createTeamBingoRes.room.isBingo || createTeamBingoRes.room.gameMode !== 'coop') {
+    throw new Error('Team Co-Op Bingo Mode room creation failed');
+  }
+  const teamBingoCode = createTeamBingoRes.roomCode;
+  const teamBingoP1 = createTeamBingoRes.playerId;
+  console.log(`✅ Team Effort Bingo Room Created: ${teamBingoCode} (GameMode: ${createTeamBingoRes.room.gameMode}, BoardFormat: ${createTeamBingoRes.room.boardFormat}, Target: ${createTeamBingoRes.room.targetWins} Line)`);
+
+  const joinTeamBingoRes = await new Promise((resolve) => {
+    socket2.emit('join_room', {
+      roomCode: teamBingoCode,
+      playerName: 'Team Partner',
+      playerAvatar: '🐼'
+    }, resolve);
+  });
+  if (!joinTeamBingoRes.success) throw new Error('Join team bingo failed');
+  const teamBingoP2 = joinTeamBingoRes.playerId;
+
+  const startTeamBingoRes = await new Promise((resolve) => {
+    socket1.emit('start_game', { roomCode: teamBingoCode, playerId: teamBingoP1 }, resolve);
+  });
+  if (!startTeamBingoRes.success || startTeamBingoRes.room.prompts.length !== 9) {
+    throw new Error('Team Bingo failed to deal 9 grid items');
+  }
+  console.log(`✅ Team Co-Op Bingo Match Started with 3x3 Grid!`);
+
+  // Simulate Partner 1 finding prompt 0, Partner 2 finding prompt 1, Partner 1 finding prompt 2 (Row 1 completed together!)
+  const teamBingoPrompts = startTeamBingoRes.room.prompts;
+
+  // P1 finds prompt 0
+  await new Promise((resolve) => {
+    socket1.emit('submit_item', {
+      roomCode: teamBingoCode,
+      playerId: teamBingoP1,
+      promptId: teamBingoPrompts[0].id,
+      photoUrl: '/uploads/tb-0.jpg'
+    }, resolve);
+  });
+  await new Promise((resolve) => {
+    socket2.emit('verify_item', {
+      roomCode: teamBingoCode,
+      reviewerId: teamBingoP2,
+      targetPlayerId: teamBingoP1,
+      promptId: teamBingoPrompts[0].id,
+      approved: true
+    }, resolve);
+  });
+
+  // P2 finds prompt 1
+  await new Promise((resolve) => {
+    socket2.emit('submit_item', {
+      roomCode: teamBingoCode,
+      playerId: teamBingoP2,
+      promptId: teamBingoPrompts[1].id,
+      photoUrl: '/uploads/tb-1.jpg'
+    }, resolve);
+  });
+  await new Promise((resolve) => {
+    socket1.emit('verify_item', {
+      roomCode: teamBingoCode,
+      reviewerId: teamBingoP1,
+      targetPlayerId: teamBingoP2,
+      promptId: teamBingoPrompts[1].id,
+      approved: true
+    }, resolve);
+  });
+
+  // P1 finds prompt 2 -> completes Row 1 for the team!
+  await new Promise((resolve) => {
+    socket1.emit('submit_item', {
+      roomCode: teamBingoCode,
+      playerId: teamBingoP1,
+      promptId: teamBingoPrompts[2].id,
+      photoUrl: '/uploads/tb-2.jpg'
+    }, resolve);
+  });
+  const teamFinalVerify = await new Promise((resolve) => {
+    socket2.emit('verify_item', {
+      roomCode: teamBingoCode,
+      reviewerId: teamBingoP2,
+      targetPlayerId: teamBingoP1,
+      promptId: teamBingoPrompts[2].id,
+      approved: true
+    }, resolve);
+  });
+
+  if (teamFinalVerify.room.status !== 'completed' || !teamFinalVerify.room.winner?.isTeam) {
+    throw new Error('Expected Team Co-Op Bingo line completion to trigger collective team victory!');
+  }
+  console.log(`🏆 TEAM CO-OP BINGO VICTORY TRIGGERED! Couple completed Row 1 together and won the match!`);
 
   socket1.disconnect();
   socket2.disconnect();

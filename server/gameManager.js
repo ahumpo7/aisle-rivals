@@ -19,7 +19,7 @@ class GameManager {
     return code;
   }
 
-  createRoom(hostName, hostAvatar = '🦊', targetWins = 8, deckSize = 20, gameMode = 'coop', themeId = 'supermarket') {
+  createRoom(hostName, hostAvatar = '🦊', targetWins = 8, deckSize = 20, gameMode = 'coop', themeId = 'supermarket', boardFormat = 'standard') {
     const roomCode = this.generateRoomCode();
     const hostId = uuidv4();
 
@@ -27,24 +27,29 @@ class GameManager {
     const themePrompts = getPromptsByTheme(selectedTheme.id);
 
     const isCoopOnly = selectedTheme.id === 'roadtrip' || selectedTheme.coopOnly;
+
+    // Bingo option can be chosen for either Head-to-Head or Team Battle
+    const isBingo = boardFormat === 'bingo' || gameMode === 'bingo';
+    const format = isBingo ? 'bingo' : 'standard';
+
     let mode = 'coop';
     if (isCoopOnly) {
       mode = 'coop';
-    } else if (gameMode === 'bingo') {
-      mode = 'bingo';
     } else if (gameMode === 'versus') {
       mode = 'versus';
+    } else if (gameMode === 'bingo') {
+      mode = 'versus'; // legacy fallback
     } else {
       mode = 'coop';
     }
 
     // Select prompts for the match deck (9 for 3x3 Bingo grid)
     const shuffled = [...themePrompts].sort(() => 0.5 - Math.random());
-    const matchDeckSize = mode === 'bingo' ? 9 : Math.min(deckSize || 20, themePrompts.length);
+    const matchDeckSize = isBingo ? 9 : Math.min(deckSize || 20, themePrompts.length);
     const selectedPrompts = shuffled.slice(0, matchDeckSize);
 
     // For bingo, targetWins represents lines (1, 2) or blackout (9)
-    const effectiveTargetWins = mode === 'bingo'
+    const effectiveTargetWins = isBingo
       ? (Number(targetWins) === 9 ? 9 : (Number(targetWins) === 2 ? 2 : 1))
       : Math.min(Number(targetWins) || 8, selectedPrompts.length);
 
@@ -54,7 +59,9 @@ class GameManager {
       roomCode,
       createdAt: Date.now(),
       status: 'waiting', // waiting, in_progress, completed
-      gameMode: mode, // 'coop', 'versus', or 'bingo'
+      gameMode: mode, // 'coop' or 'versus'
+      boardFormat: format, // 'standard' or 'bingo'
+      isBingo,
       coopOnly: isCoopOnly,
       themeId: selectedTheme.id,
       themeName: selectedTheme.name,
@@ -68,6 +75,7 @@ class GameManager {
       winner: null,
       teamScore: 0,
       teamVerifiedCount: 0,
+      teamBingoLinesCount: 0,
       lightningFrenzy: null,
       activeSabotages: {},
       bingoClaims: {},
@@ -90,9 +98,11 @@ class GameManager {
         {
           id: uuidv4(),
           type: 'room_created',
-          message: `${hostName || 'Partner 1'} created Room ${roomCode}! Theme: ${selectedTheme.icon} ${selectedTheme.name} • Mode: ${
-            mode === 'bingo' ? '🎯 3x3 Bingo Faceoff' : mode === 'coop' ? '🤝 Team Effort' : '⚔️ Head-to-Head'
-          }${safetyNote} (Goal: ${mode === 'bingo' ? (effectiveTargetWins === 9 ? 'Full Blackout' : effectiveTargetWins + ' Line(s)') : effectiveTargetWins + ' items'}).`,
+          message: `${hostName || 'Partner 1'} created Room ${roomCode}! Theme: ${selectedTheme.icon} ${selectedTheme.name} • ${
+            mode === 'coop' ? '🤝 Team Effort' : '⚔️ Head-to-Head'
+          } [${isBingo ? '🎯 3x3 Bingo Card' : '📋 Classic List'}]${safetyNote} (Goal: ${
+            isBingo ? (effectiveTargetWins === 9 ? 'Full Blackout' : effectiveTargetWins + ' Line(s)') : effectiveTargetWins + ' items'
+          }).`,
           timestamp: Date.now()
         }
       ]
@@ -128,6 +138,7 @@ class GameManager {
       isHost: false,
       score: 0,
       verifiedCount: 0,
+      bingoLinesCount: 0,
       submissions: {},
       powerups: ['freeze', 'opposite_hand', 'slow_mo'],
       connected: true,
@@ -328,98 +339,147 @@ class GameManager {
         room.teamVerifiedCount = uniqueVerifiedPrompts.size;
         room.teamScore = totalScore;
 
-        room.activityLog.push({
-          id: uuidv4(),
-          type: 'item_approved',
-          reviewerName: reviewer.name,
-          targetPlayerName: targetPlayer.name,
-          promptTitle: submission.promptTitle,
-          points,
-          feedback: submission.feedback,
-          message: `✅ ${reviewer.name} verified ${targetPlayer.name}'s "${submission.promptTitle}" (+${points} team pts)! (Team: ${room.teamVerifiedCount}/${room.targetWins})`,
-          timestamp: Date.now()
-        });
+        if (room.isBingo) {
+          // Team Effort + 3x3 Bingo Card
+          room.teamBingoLinesCount = this.countTeamCompletedBingoLines(room);
+          const isBlackoutTarget = room.targetWins === 9;
+          const isTeamBingoWin = isBlackoutTarget
+            ? room.teamVerifiedCount >= 9
+            : room.teamBingoLinesCount >= room.targetWins;
 
-        // Co-op Win Condition
-        if (room.teamVerifiedCount >= room.targetWins) {
-          room.status = 'completed';
-          room.completedAt = Date.now();
-          room.winner = {
-            id: 'team',
-            isTeam: true,
-            name: 'Couple Power Team',
-            score: room.teamScore,
-            verifiedCount: room.teamVerifiedCount
-          };
           room.activityLog.push({
             id: uuidv4(),
-            type: 'game_won',
-            message: `🏆 Couple Team Mission Accomplished! Found all ${room.targetWins} items together with ${room.teamScore} points!`,
+            type: 'item_approved',
+            reviewerName: reviewer.name,
+            targetPlayerName: targetPlayer.name,
+            promptTitle: submission.promptTitle,
+            points,
+            feedback: submission.feedback,
+            message: `✅ ${reviewer.name} verified ${targetPlayer.name}'s "${submission.promptTitle}" (+${points} team pts)! (Team: ${
+              isBlackoutTarget
+                ? `${room.teamVerifiedCount}/9 Blackout`
+                : `${room.teamBingoLinesCount}/${room.targetWins} Bingo Line(s)`
+            })`,
             timestamp: Date.now()
           });
-        }
-      } else if (room.gameMode === 'bingo') {
-        // Dedicated 3x3 Bingo Card Challenge Mode
-        targetPlayer.bingoLinesCount = this.countCompletedBingoLines(room, targetPlayer);
 
-        const isBlackoutTarget = room.targetWins === 9;
-        const isBingoWin = isBlackoutTarget
-          ? targetPlayer.verifiedCount >= 9
-          : targetPlayer.bingoLinesCount >= room.targetWins;
-
-        room.activityLog.push({
-          id: uuidv4(),
-          type: 'item_approved',
-          reviewerName: reviewer.name,
-          targetPlayerName: targetPlayer.name,
-          promptTitle: submission.promptTitle,
-          points,
-          feedback: submission.feedback,
-          message: `✅ ${reviewer.name} verified ${targetPlayer.name}'s "${submission.promptTitle}" (+${points} pts)! (${
-            isBlackoutTarget
-              ? `${targetPlayer.verifiedCount}/9 Blackout`
-              : `${targetPlayer.bingoLinesCount}/${room.targetWins} Bingo Line(s)`
-          })`,
-          timestamp: Date.now()
-        });
-
-        if (isBingoWin) {
-          room.status = 'completed';
-          room.completedAt = Date.now();
-          room.winner = targetPlayer;
+          if (isTeamBingoWin) {
+            room.status = 'completed';
+            room.completedAt = Date.now();
+            room.winner = {
+              id: 'team',
+              isTeam: true,
+              name: 'Couple Power Team',
+              score: room.teamScore,
+              verifiedCount: room.teamVerifiedCount
+            };
+            room.activityLog.push({
+              id: uuidv4(),
+              type: 'game_won',
+              message: `🎯 TEAM BINGO! The couple completed ${
+                isBlackoutTarget ? 'the full 9-square Blackout' : `${room.targetWins} line(s)`
+              } together with ${room.teamScore} points!`,
+              timestamp: Date.now()
+            });
+          }
+        } else {
+          // Standard Co-op Hunt
           room.activityLog.push({
             id: uuidv4(),
-            type: 'game_won',
-            message: `🎯 BINGO! ${targetPlayer.name} completed ${
-              isBlackoutTarget ? 'the full 9-square Blackout' : `${room.targetWins} line(s)`
-            } and won the Bingo Faceoff!`,
+            type: 'item_approved',
+            reviewerName: reviewer.name,
+            targetPlayerName: targetPlayer.name,
+            promptTitle: submission.promptTitle,
+            points,
+            feedback: submission.feedback,
+            message: `✅ ${reviewer.name} verified ${targetPlayer.name}'s "${submission.promptTitle}" (+${points} team pts)! (Team: ${room.teamVerifiedCount}/${room.targetWins})`,
             timestamp: Date.now()
           });
+
+          // Co-op Win Condition
+          if (room.teamVerifiedCount >= room.targetWins) {
+            room.status = 'completed';
+            room.completedAt = Date.now();
+            room.winner = {
+              id: 'team',
+              isTeam: true,
+              name: 'Couple Power Team',
+              score: room.teamScore,
+              verifiedCount: room.teamVerifiedCount
+            };
+            room.activityLog.push({
+              id: uuidv4(),
+              type: 'game_won',
+              message: `🏆 Couple Team Mission Accomplished! Found all ${room.targetWins} items together with ${room.teamScore} points!`,
+              timestamp: Date.now()
+            });
+          }
         }
       } else {
         // Versus Mode (Head-to-Head)
-        room.activityLog.push({
-          id: uuidv4(),
-          type: 'item_approved',
-          reviewerName: reviewer.name,
-          targetPlayerName: targetPlayer.name,
-          promptTitle: submission.promptTitle,
-          points,
-          feedback: submission.feedback,
-          message: `✅ ${reviewer.name} verified ${targetPlayer.name}'s "${submission.promptTitle}" (+${points} pts)! (${targetPlayer.verifiedCount}/${room.targetWins} to win)`,
-          timestamp: Date.now()
-        });
+        if (room.isBingo) {
+          // Dedicated 3x3 Bingo Card Head-to-Head Race
+          targetPlayer.bingoLinesCount = this.countCompletedBingoLines(room, targetPlayer);
 
-        if (targetPlayer.verifiedCount >= room.targetWins) {
-          room.status = 'completed';
-          room.completedAt = Date.now();
-          room.winner = targetPlayer;
+          const isBlackoutTarget = room.targetWins === 9;
+          const isBingoWin = isBlackoutTarget
+            ? targetPlayer.verifiedCount >= 9
+            : targetPlayer.bingoLinesCount >= room.targetWins;
+
           room.activityLog.push({
             id: uuidv4(),
-            type: 'game_won',
-            message: `🏆 ${targetPlayer.name} reached the goal of ${room.targetWins} verified items and won the match!`,
+            type: 'item_approved',
+            reviewerName: reviewer.name,
+            targetPlayerName: targetPlayer.name,
+            promptTitle: submission.promptTitle,
+            points,
+            feedback: submission.feedback,
+            message: `✅ ${reviewer.name} verified ${targetPlayer.name}'s "${submission.promptTitle}" (+${points} pts)! (${
+              isBlackoutTarget
+                ? `${targetPlayer.verifiedCount}/9 Blackout`
+                : `${targetPlayer.bingoLinesCount}/${room.targetWins} Bingo Line(s)`
+            })`,
             timestamp: Date.now()
           });
+
+          if (isBingoWin) {
+            room.status = 'completed';
+            room.completedAt = Date.now();
+            room.winner = targetPlayer;
+            room.activityLog.push({
+              id: uuidv4(),
+              type: 'game_won',
+              message: `🎯 BINGO! ${targetPlayer.name} completed ${
+                isBlackoutTarget ? 'the full 9-square Blackout' : `${room.targetWins} line(s)`
+              } and won the Bingo Faceoff!`,
+              timestamp: Date.now()
+            });
+          }
+        } else {
+          // Standard Head-to-Head Hunt
+          room.activityLog.push({
+            id: uuidv4(),
+            type: 'item_approved',
+            reviewerName: reviewer.name,
+            targetPlayerName: targetPlayer.name,
+            promptTitle: submission.promptTitle,
+            points,
+            feedback: submission.feedback,
+            message: `✅ ${reviewer.name} verified ${targetPlayer.name}'s "${submission.promptTitle}" (+${points} pts)! (${targetPlayer.verifiedCount}/${room.targetWins} to win)`,
+            timestamp: Date.now()
+          });
+
+          if (targetPlayer.verifiedCount >= room.targetWins) {
+            room.status = 'completed';
+            room.completedAt = Date.now();
+            room.winner = targetPlayer;
+            room.activityLog.push({
+              id: uuidv4(),
+              type: 'game_won',
+              message: `🏆 ${targetPlayer.name} reached the goal of ${room.targetWins} verified items and won the match!`,
+              timestamp: Date.now()
+            });
+          }
         }
       }
     } else {
@@ -440,7 +500,7 @@ class GameManager {
   }
 
   countCompletedBingoLines(room, player) {
-    if (!room || !player || room.gameMode !== 'bingo') return 0;
+    if (!room || !player || !room.isBingo) return 0;
     const prompts = room.prompts || [];
     if (prompts.length < 9) return 0;
 
@@ -448,6 +508,34 @@ class GameManager {
     const isApproved = (idx) => {
       const p = prompts[idx];
       return p && subs[p.id]?.status === 'approved';
+    };
+
+    const lines = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+      [0, 3, 6], [1, 4, 7], [2, 5, 8], // Cols
+      [0, 4, 8], [2, 4, 6]             // Diagonals
+    ];
+
+    let completed = 0;
+    for (const line of lines) {
+      if (line.every(isApproved)) {
+        completed++;
+      }
+    }
+    return completed;
+  }
+
+  countTeamCompletedBingoLines(room) {
+    if (!room || !room.isBingo) return 0;
+    const prompts = room.prompts || [];
+    if (prompts.length < 9) return 0;
+
+    const isApproved = (idx) => {
+      const p = prompts[idx];
+      if (!p) return false;
+      return Object.values(room.players || {}).some(
+        (player) => player.submissions?.[p.id]?.status === 'approved'
+      );
     };
 
     const lines = [
@@ -607,20 +695,22 @@ class GameManager {
     room.winner = null;
     room.teamScore = 0;
     room.teamVerifiedCount = 0;
+    room.teamBingoLinesCount = 0;
     room.lightningFrenzy = null;
     room.activeSabotages = {};
     room.bingoClaims = {};
     room.startedAt = Date.now();
 
-    // Re-shuffle a fresh match deck for the active theme
+    // Re-shuffle a fresh match deck for the active theme (9 for bingo)
     const pool = getPromptsByTheme(room.themeId || 'supermarket');
     const shuffled = [...pool].sort(() => 0.5 - Math.random());
-    const matchDeckSize = Math.min(room.deckSize || 20, pool.length);
+    const matchDeckSize = room.isBingo ? 9 : Math.min(room.deckSize || 20, pool.length);
     room.prompts = shuffled.slice(0, matchDeckSize);
 
     for (const pId in room.players) {
       room.players[pId].score = 0;
       room.players[pId].verifiedCount = 0;
+      room.players[pId].bingoLinesCount = 0;
       room.players[pId].submissions = {};
       room.players[pId].powerups = ['freeze', 'opposite_hand', 'slow_mo'];
     }
