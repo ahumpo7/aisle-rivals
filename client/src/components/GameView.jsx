@@ -83,11 +83,11 @@ export default function GameView({
   };
 
   return (
-    <div className="max-w-md mx-auto p-3 sm:p-4 pb-24 space-y-4">
+    <div className="max-w-md mx-auto p-2.5 sm:p-3 pb-20 space-y-2.5">
       {/* Top Bar with Options Menu */}
       <div className="flex items-center justify-between text-xs text-slate-400">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="font-mono font-bold text-amber-400 bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700">
+          <span className="font-mono font-bold text-amber-400 bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700 text-[11px]">
             {room.roomCode}
           </span>
           <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-lg bg-slate-800 text-slate-200 border border-slate-700">
@@ -100,24 +100,24 @@ export default function GameView({
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={toggleMute}
-            className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition"
+            className="p-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition"
             title={muted ? 'Unmute' : 'Mute'}
           >
-            {muted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+            {muted ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
           </button>
           <button
             onClick={() => setShowLogDrawer(true)}
-            className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1 text-[11px]"
+            className="px-2 py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1 text-[11px]"
           >
-            <Bell className="w-4 h-4 text-amber-400" />
+            <Bell className="w-3.5 h-3.5 text-amber-400" />
             <span>Feed</span>
           </button>
           <button
             onClick={() => setShowMenuModal(true)}
-            className="px-2.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow transition"
+            className="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black text-xs flex items-center gap-1 shadow transition"
           >
             <Menu className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>MENU</span>
@@ -127,10 +127,10 @@ export default function GameView({
 
       {/* Road Trip Safety Banner */}
       {room.themeId === 'roadtrip' && (
-        <div className="flex items-center gap-2 p-2.5 rounded-2xl bg-cyan-950/50 border border-cyan-500/40 text-cyan-200 text-xs shadow-md">
-          <span className="text-lg">🚗</span>
-          <span className="font-medium text-[11px] leading-snug">
-            <b className="text-cyan-300">Co-Pilot Safety Rule:</b> Passenger navigates & snaps challenges while driver keeps eyes on the road!
+        <div className="flex items-center gap-2 p-2 rounded-xl bg-cyan-950/50 border border-cyan-500/40 text-cyan-200 text-xs shadow-md">
+          <span className="text-base">🚗</span>
+          <span className="font-medium text-[11px] leading-tight">
+            <b className="text-cyan-300">Co-Pilot Safety:</b> Passenger navigates & snaps challenges while driver keeps eyes on the road!
           </span>
         </div>
       )}
@@ -138,41 +138,41 @@ export default function GameView({
       {/* Mode Scoreboard */}
       {isCoop ? (
         /* Couples Team Effort Scoreboard */
-        <div className="bg-slate-800/90 backdrop-blur rounded-3xl border border-emerald-500/40 p-4 sm:p-5 shadow-xl space-y-3 relative overflow-hidden">
-          <div className="flex items-center justify-between border-b border-slate-700/60 pb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">{player.avatar}</span>
-              <span className="text-xs font-black text-pink-400">❤️</span>
-              <span className="text-2xl">{opponent?.avatar || '🐼'}</span>
+        <div className="bg-slate-800/90 backdrop-blur rounded-2xl border border-emerald-500/40 p-3 sm:p-3.5 shadow-lg space-y-2 relative overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-700/60 pb-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xl">{player.avatar}</span>
+              <span className="text-[10px] font-black text-pink-400">❤️</span>
+              <span className="text-xl">{opponent?.avatar || '🐼'}</span>
               <div className="ml-1 min-w-0">
-                <span className="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                <span className="text-[9px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                   Couple Team Effort
                 </span>
-                <div className="font-extrabold text-white text-sm truncate">
+                <div className="font-extrabold text-white text-xs truncate">
                   {player.name} & {opponent?.name || 'Partner'}
                 </div>
               </div>
             </div>
 
             <div className="text-right shrink-0">
-              <div className="text-2xl font-black text-amber-400">
-                {teamScore} <span className="text-[11px] text-slate-400 font-normal">pts</span>
+              <div className="text-xl font-black text-amber-400 leading-none">
+                {teamScore} <span className="text-[10px] text-slate-400 font-normal">pts</span>
               </div>
-              <div className="text-[11px] font-bold text-emerald-400">
+              <div className="text-[10px] font-bold text-emerald-400 mt-0.5">
                 {teamVerifiedCount} / {targetWins} Goal
               </div>
             </div>
           </div>
 
           {/* Unified Team Progress Bar */}
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-[11px] font-bold uppercase text-slate-400">
-              <span>Team Mission Progress</span>
+          <div className="space-y-1">
+            <div className="flex justify-between text-[10px] font-bold uppercase text-slate-400">
+              <span>Team Progress</span>
               <span className="text-emerald-400 font-extrabold">
                 {Math.min(100, Math.round((teamVerifiedCount / targetWins) * 100))}%
               </span>
             </div>
-            <div className="w-full bg-slate-950 h-3.5 rounded-full overflow-hidden border border-slate-700/60 p-0.5 flex">
+            <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-700/60 p-0.5 flex">
               <div
                 className="bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 h-full rounded-full transition-all duration-500 shadow-sm"
                 style={{ width: `${Math.min(100, (teamVerifiedCount / targetWins) * 100)}%` }}
@@ -181,47 +181,47 @@ export default function GameView({
           </div>
 
           {/* Contributions Breakdown */}
-          <div className="grid grid-cols-2 gap-2 pt-1 text-center text-xs">
-            <div className="bg-slate-900/60 rounded-xl p-2 border border-slate-700/40 truncate">
-              <span className="text-slate-400 font-semibold">{player.name}: </span>
+          <div className="grid grid-cols-2 gap-1.5 pt-0.5 text-center text-[11px]">
+            <div className="bg-slate-900/60 rounded-lg py-1 px-1.5 border border-slate-700/40 truncate">
+              <span className="text-slate-400 font-medium">{player.name}: </span>
               <b className="text-blue-400">{myApprovedCount} found</b>
             </div>
-            <div className="bg-slate-900/60 rounded-xl p-2 border border-slate-700/40 truncate">
-              <span className="text-slate-400 font-semibold">{opponent?.name || 'Partner'}: </span>
+            <div className="bg-slate-900/60 rounded-lg py-1 px-1.5 border border-slate-700/40 truncate">
+              <span className="text-slate-400 font-medium">{opponent?.name || 'Partner'}: </span>
               <b className="text-pink-400">{oppApprovedCount} found</b>
             </div>
           </div>
         </div>
       ) : (
         /* Head-to-Head Couples Scoreboard */
-        <div className="bg-slate-800/90 backdrop-blur rounded-3xl border border-slate-700/80 p-4 shadow-xl space-y-3 relative overflow-hidden">
-          <div className="grid grid-cols-2 gap-3 items-center">
+        <div className="bg-slate-800/90 backdrop-blur rounded-2xl border border-slate-700/80 p-2.5 sm:p-3 shadow-lg space-y-2 relative overflow-hidden">
+          <div className="grid grid-cols-2 gap-2 items-center">
             {/* Player (You) */}
-            <div className="bg-slate-900/70 border border-blue-500/40 rounded-2xl p-3 text-center space-y-1 relative">
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-600/30 text-blue-300 border border-blue-500/30">
+            <div className="bg-slate-900/70 border border-blue-500/40 rounded-xl p-2 text-center space-y-0.5 relative">
+              <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-blue-600/30 text-blue-300 border border-blue-500/30">
                 You
               </span>
-              <div className="text-2xl pt-0.5">{player.avatar}</div>
-              <div className="font-bold text-white text-sm truncate">{player.name}</div>
-              <div className="text-2xl font-black text-amber-400">
-                {player.score} <span className="text-[11px] text-slate-400 font-normal">pts</span>
+              <div className="text-xl pt-0.5">{player.avatar}</div>
+              <div className="font-bold text-white text-xs truncate">{player.name}</div>
+              <div className="text-xl font-black text-amber-400 leading-none">
+                {player.score} <span className="text-[10px] text-slate-400 font-normal">pts</span>
               </div>
-              <div className="text-[11px] font-bold text-blue-400">
+              <div className="text-[10px] font-bold text-blue-400">
                 {myApprovedCount} / {targetWins} to win
               </div>
             </div>
 
             {/* Opponent (Partner) */}
-            <div className="bg-slate-900/70 border border-pink-500/40 rounded-2xl p-3 text-center space-y-1 relative">
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-pink-600/30 text-pink-300 border border-pink-500/30">
+            <div className="bg-slate-900/70 border border-pink-500/40 rounded-xl p-2 text-center space-y-0.5 relative">
+              <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-pink-600/30 text-pink-300 border border-pink-500/30">
                 Partner
               </span>
-              <div className="text-2xl pt-0.5">{opponent?.avatar || '🐼'}</div>
-              <div className="font-bold text-white text-sm truncate">{opponent?.name || 'Partner'}</div>
-              <div className="text-2xl font-black text-amber-400">
-                {opponent?.score || 0} <span className="text-[11px] text-slate-400 font-normal">pts</span>
+              <div className="text-xl pt-0.5">{opponent?.avatar || '🐼'}</div>
+              <div className="font-bold text-white text-xs truncate">{opponent?.name || 'Partner'}</div>
+              <div className="text-xl font-black text-amber-400 leading-none">
+                {opponent?.score || 0} <span className="text-[10px] text-slate-400 font-normal">pts</span>
               </div>
-              <div className="text-[11px] font-bold text-pink-400">
+              <div className="text-[10px] font-bold text-pink-400">
                 {oppApprovedCount} / {targetWins} to win
               </div>
             </div>
@@ -229,11 +229,11 @@ export default function GameView({
 
           {/* Progress Bar Race towards targetWins */}
           <div className="space-y-1">
-            <div className="flex justify-between text-[10px] font-bold uppercase text-slate-400">
+            <div className="flex justify-between text-[9px] font-bold uppercase text-slate-400">
               <span>Race to Goal</span>
               <span>First to {targetWins} Verified</span>
             </div>
-            <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden flex border border-slate-700/60 p-0.5">
+            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden flex border border-slate-700/60 p-0.5">
               <div
                 className="bg-blue-500 h-full rounded-full transition-all duration-500"
                 style={{ width: `${Math.min(100, (myApprovedCount / targetWins) * 100) / 2}%` }}
@@ -250,33 +250,33 @@ export default function GameView({
 
       {/* Awaiting Partner Approval Queue Section */}
       {pendingQueue.length > 0 && (
-        <div className="bg-amber-500/10 border-2 border-amber-400/40 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in duration-200">
+        <div className="bg-amber-500/10 border border-amber-400/40 rounded-xl p-2.5 space-y-1.5 animate-in fade-in duration-200">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-xs font-black uppercase text-amber-300 tracking-wider">
-              <Clock className="w-4 h-4 text-amber-400 animate-spin" />
-              <span>Awaiting Approval Queue ({pendingQueue.length})</span>
+            <div className="flex items-center gap-1.5 text-[11px] font-black uppercase text-amber-300 tracking-wider">
+              <Clock className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+              <span>Awaiting Approval ({pendingQueue.length})</span>
             </div>
-            <span className="text-[10px] text-amber-400 font-medium bg-amber-400/20 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] text-amber-400 font-medium bg-amber-400/20 px-1.5 py-0.5 rounded-full">
               Sent to {opponent?.name || 'Partner'}
             </span>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {pendingQueue.map((item) => (
               <div
                 key={item.promptId}
                 onClick={() => item.prompt && onOpenSnapModal(item.prompt)}
-                className="bg-slate-900/80 border border-amber-400/30 rounded-xl p-2.5 flex items-center justify-between gap-3 cursor-pointer hover:border-amber-400/60 transition"
+                className="bg-slate-900/80 border border-amber-400/30 rounded-lg p-2 flex items-center justify-between gap-2.5 cursor-pointer hover:border-amber-400/60 transition"
               >
-                <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
                   {item.photoUrl ? (
                     <img
                       src={item.photoUrl}
                       alt="submission"
-                      className="w-11 h-11 rounded-lg object-cover bg-black border border-slate-700 shrink-0"
+                      className="w-9 h-9 rounded-md object-cover bg-black border border-slate-700 shrink-0"
                     />
                   ) : (
-                    <div className="w-11 h-11 rounded-lg bg-slate-800 flex items-center justify-center text-xl shrink-0">
+                    <div className="w-9 h-9 rounded-md bg-slate-800 flex items-center justify-center text-lg shrink-0">
                       {item.promptIcon || '📸'}
                     </div>
                   )}
@@ -284,7 +284,7 @@ export default function GameView({
                     <div className="text-xs font-bold text-white truncate">
                       {item.promptTitle || item.prompt?.title}
                     </div>
-                    <div className="text-[11px] text-amber-300/90 truncate flex items-center gap-1">
+                    <div className="text-[10px] text-amber-300/90 truncate flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping shrink-0" />
                       <span>Waiting for {opponent?.name || 'Partner'} to approve...</span>
                     </div>
@@ -306,31 +306,31 @@ export default function GameView({
       {pendingVerificationRequest && (
         <div
           onClick={() => onOpenVerification(pendingVerificationRequest)}
-          className="bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 text-slate-950 p-4 rounded-2xl shadow-xl border-2 border-yellow-300 flex items-center justify-between cursor-pointer active:scale-98 transition animate-attention"
+          className="bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 text-slate-950 p-2.5 rounded-xl shadow-lg border border-yellow-300 flex items-center justify-between cursor-pointer active:scale-98 transition animate-attention"
         >
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">📸</span>
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">📸</span>
             <div>
-              <div className="text-[11px] uppercase font-black tracking-wider text-slate-900">
+              <div className="text-[10px] uppercase font-black tracking-wider text-slate-900">
                 Action Required!
               </div>
-              <div className="text-sm font-black leading-tight">
+              <div className="text-xs font-black leading-tight">
                 {pendingVerificationRequest.playerName} found "{pendingVerificationRequest.promptTitle}"!
               </div>
-              <div className="text-xs font-semibold text-slate-800">
+              <div className="text-[10px] font-semibold text-slate-800">
                 Tap to inspect photo and verify!
               </div>
             </div>
           </div>
-          <div className="w-8 h-8 rounded-full bg-slate-950 text-white flex items-center justify-center shrink-0">
-            <ArrowRight className="w-4 h-4" />
+          <div className="w-7 h-7 rounded-full bg-slate-950 text-white flex items-center justify-center shrink-0">
+            <ArrowRight className="w-3.5 h-3.5" />
           </div>
         </div>
       )}
 
       {/* Real-time Emoji Reactions Bar */}
-      <div className="flex items-center justify-between gap-1 p-2 bg-slate-800/60 rounded-2xl border border-slate-700/60">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">
+      <div className="flex items-center justify-between gap-1 p-1.5 bg-slate-800/60 rounded-xl border border-slate-700/60">
+        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 px-1">
           Taunt:
         </span>
         <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
@@ -338,7 +338,7 @@ export default function GameView({
             <button
               key={emoji}
               onClick={() => onSendReaction(emoji)}
-              className="text-lg p-1.5 hover:bg-slate-700/80 active:scale-125 rounded-xl transition"
+              className="text-base p-1 hover:bg-slate-700/80 active:scale-125 rounded-lg transition"
             >
               {emoji}
             </button>
@@ -347,19 +347,19 @@ export default function GameView({
       </div>
 
       {/* Filter Tabs & Custom Challenge Button */}
-      <div className="flex items-center justify-between gap-2 pt-1">
-        <div className="flex gap-1.5 p-1 bg-slate-800/80 rounded-xl border border-slate-700 text-xs font-bold">
+      <div className="flex items-center justify-between gap-2 pt-0.5">
+        <div className="flex gap-1 p-0.5 bg-slate-800/80 rounded-lg border border-slate-700 text-[11px] font-bold">
           <button
             onClick={() => setFilter('all')}
-            className={`px-3 py-1 rounded-lg transition ${
+            className={`px-2.5 py-0.5 rounded-md transition ${
               filter === 'all' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
             }`}
           >
-            Deck ({prompts.length})
+            All ({prompts.length})
           </button>
           <button
             onClick={() => setFilter('todo')}
-            className={`px-3 py-1 rounded-lg transition ${
+            className={`px-2.5 py-0.5 rounded-md transition ${
               filter === 'todo' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -367,7 +367,7 @@ export default function GameView({
           </button>
           <button
             onClick={() => setFilter('completed')}
-            className={`px-3 py-1 rounded-lg transition ${
+            className={`px-2.5 py-0.5 rounded-md transition ${
               filter === 'completed' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -377,14 +377,14 @@ export default function GameView({
 
         <button
           onClick={onOpenAddPrompt}
-          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 text-xs font-bold transition active:scale-95"
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 text-[11px] font-bold transition active:scale-95"
         >
-          <Plus className="w-3.5 h-3.5" /> Custom
+          <Plus className="w-3 h-3" /> Custom
         </button>
       </div>
 
       {/* Hunt Items List */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         {filteredPrompts.map((prompt) => {
           const mySub = mySubmissions[prompt.id];
           const oppSub = oppSubmissions[prompt.id];
@@ -396,7 +396,7 @@ export default function GameView({
             <div
               key={prompt.id}
               onClick={() => onOpenSnapModal(prompt)}
-              className={`p-4 rounded-2xl border transition-all cursor-pointer active:scale-98 shadow-md relative overflow-hidden group ${
+              className={`p-3 rounded-xl border transition-all cursor-pointer active:scale-98 shadow-sm relative overflow-hidden group ${
                 isCompleted
                   ? 'bg-slate-800/50 border-emerald-500/40 hover:border-emerald-500/70'
                   : mySub?.status === 'pending' || oppSub?.status === 'pending'
@@ -407,19 +407,19 @@ export default function GameView({
               }`}
             >
               {/* Category & Points Top & Swap Button */}
-              <div className="flex items-center justify-between text-[11px] mb-2">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between text-[10px] mb-1.5">
+                <div className="flex items-center gap-1.5">
                   <span className="font-bold text-slate-400 uppercase tracking-wider">
                     {prompt.category}
                   </span>
                   {prompt.badge && (
-                    <span className="px-2 py-0.5 rounded-md bg-slate-700/60 text-slate-300 font-medium">
+                    <span className="px-1.5 py-0.2 rounded bg-slate-700/60 text-slate-300 font-medium">
                       {prompt.badge}
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <span className="font-black text-amber-400">
                     +{prompt.points} PTS
                   </span>
@@ -429,9 +429,9 @@ export default function GameView({
                       onClick={(e) => handleSwapClick(e, prompt.id)}
                       disabled={swappingId === prompt.id}
                       title="Don't like this item? Swap it!"
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-700/70 hover:bg-slate-600 text-slate-300 hover:text-white transition active:scale-95 text-[10px] font-bold"
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-700/70 hover:bg-slate-600 text-slate-300 hover:text-white transition active:scale-95 text-[9px] font-bold"
                     >
-                      <Shuffle className={`w-3 h-3 ${swappingId === prompt.id ? 'animate-spin' : ''}`} />
+                      <Shuffle className={`w-2.5 h-2.5 ${swappingId === prompt.id ? 'animate-spin' : ''}`} />
                       <span>Swap</span>
                     </button>
                   )}
@@ -439,49 +439,49 @@ export default function GameView({
               </div>
 
               {/* Title & Icon */}
-              <div className="flex items-start gap-3">
-                <div className="text-3xl p-2 rounded-xl bg-slate-900/80 border border-slate-700 shrink-0">
+              <div className="flex items-start gap-2.5">
+                <div className="text-2xl p-1.5 rounded-lg bg-slate-900/80 border border-slate-700 shrink-0">
                   {prompt.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-black text-white text-base leading-tight">
+                  <h4 className="font-bold text-white text-sm leading-snug">
                     {prompt.title}
                   </h4>
-                  <p className="text-xs text-slate-300 line-clamp-2 mt-1 leading-relaxed">
+                  <p className="text-[11px] text-slate-300 line-clamp-1 mt-0.5 leading-snug">
                     {prompt.description}
                   </p>
                 </div>
               </div>
 
               {/* Status Footer */}
-              <div className="mt-3 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs">
+              <div className="mt-2 pt-2 border-t border-slate-700/60 flex items-center justify-between text-[11px]">
                 {isCoop ? (
                   /* Co-Op Team Status */
                   <div className="w-full flex items-center justify-between">
                     <div>
                       {mySub?.status === 'approved' ? (
-                        <span className="inline-flex items-center gap-1.5 text-emerald-400 font-bold">
-                          <CheckCircle2 className="w-4 h-4" /> Found by You (+{mySub.pointsEarned} team pts)
+                        <span className="inline-flex items-center gap-1 text-emerald-400 font-bold">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Found by You (+{mySub.pointsEarned} team pts)
                         </span>
                       ) : oppSub?.status === 'approved' ? (
-                        <span className="inline-flex items-center gap-1.5 text-emerald-400 font-bold">
-                          <CheckCircle2 className="w-4 h-4" /> Found by {opponent?.name || 'Partner'} (+{oppSub.pointsEarned} team pts)
+                        <span className="inline-flex items-center gap-1 text-emerald-400 font-bold">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Found by {opponent?.name || 'Partner'} (+{oppSub.pointsEarned} team pts)
                         </span>
                       ) : mySub?.status === 'pending' ? (
-                        <span className="inline-flex items-center gap-1.5 text-amber-400 font-bold animate-pulse">
-                          <Clock className="w-4 h-4" /> In Approval Queue...
+                        <span className="inline-flex items-center gap-1 text-amber-400 font-bold animate-pulse">
+                          <Clock className="w-3.5 h-3.5" /> In Approval Queue...
                         </span>
                       ) : oppSub?.status === 'pending' ? (
-                        <span className="inline-flex items-center gap-1.5 text-amber-400 font-bold animate-pulse">
-                          <Eye className="w-4 h-4" /> Partner submitted! Tap to verify!
+                        <span className="inline-flex items-center gap-1 text-amber-400 font-bold animate-pulse">
+                          <Eye className="w-3.5 h-3.5" /> Partner submitted! Tap to verify!
                         </span>
                       ) : mySub?.status === 'rejected' ? (
-                        <span className="inline-flex items-center gap-1.5 text-rose-400 font-bold">
-                          <AlertCircle className="w-4 h-4" /> Rejected! Tap to retake
+                        <span className="inline-flex items-center gap-1 text-rose-400 font-bold">
+                          <AlertCircle className="w-3.5 h-3.5" /> Rejected! Tap to retake
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 text-blue-400 font-bold">
-                          <Camera className="w-4 h-4" /> Tap to Hunt & Snap for Team
+                        <span className="inline-flex items-center gap-1 text-blue-400 font-bold">
+                          <Camera className="w-3.5 h-3.5" /> Tap to Hunt & Snap for Team
                         </span>
                       )}
                     </div>
@@ -494,28 +494,28 @@ export default function GameView({
                   <>
                     <div>
                       {mySub?.status === 'approved' && (
-                        <span className="inline-flex items-center gap-1.5 text-emerald-400 font-bold">
-                          <CheckCircle2 className="w-4 h-4" /> Verified (+{mySub.pointsEarned} pts)
+                        <span className="inline-flex items-center gap-1 text-emerald-400 font-bold">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Verified (+{mySub.pointsEarned} pts)
                         </span>
                       )}
                       {mySub?.status === 'pending' && (
-                        <span className="inline-flex items-center gap-1.5 text-amber-400 font-bold animate-pulse">
-                          <Clock className="w-4 h-4" /> In Approval Queue...
+                        <span className="inline-flex items-center gap-1 text-amber-400 font-bold animate-pulse">
+                          <Clock className="w-3.5 h-3.5" /> In Approval Queue...
                         </span>
                       )}
                       {mySub?.status === 'rejected' && (
-                        <span className="inline-flex items-center gap-1.5 text-rose-400 font-bold">
-                          <AlertCircle className="w-4 h-4" /> Rejected! Tap to retake
+                        <span className="inline-flex items-center gap-1 text-rose-400 font-bold">
+                          <AlertCircle className="w-3.5 h-3.5" /> Rejected! Tap to retake
                         </span>
                       )}
                       {!mySub && (
-                        <span className="inline-flex items-center gap-1.5 text-blue-400 font-bold">
-                          <Camera className="w-4 h-4" /> Tap to Hunt & Snap
+                        <span className="inline-flex items-center gap-1 text-blue-400 font-bold">
+                          <Camera className="w-3.5 h-3.5" /> Tap to Hunt & Snap
                         </span>
                       )}
                     </div>
 
-                    <div className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+                    <div className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
                       <span>{opponent?.avatar || 'Partner'}:</span>
                       {oppSub?.status === 'approved' ? (
                         <span className="text-emerald-400 font-bold">Found ✅</span>
