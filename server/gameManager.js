@@ -1,4 +1,4 @@
-const { HUNT_PROMPTS, getTheme, getPromptsByTheme } = require('./huntPrompts');
+const { HUNT_PROMPTS, getTheme, getPromptsByTheme, LIGHTNING_CHALLENGES, SABOTAGE_POWERUPS } = require('./huntPrompts');
 const crypto = require('crypto');
 const uuidv4 = () => crypto.randomUUID();
 
@@ -54,6 +54,9 @@ class GameManager {
       winner: null,
       teamScore: 0,
       teamVerifiedCount: 0,
+      lightningFrenzy: null,
+      activeSabotages: {},
+      bingoClaims: {},
       players: {
         [hostId]: {
           id: hostId,
@@ -63,6 +66,7 @@ class GameManager {
           score: 0,
           verifiedCount: 0,
           submissions: {},
+          powerups: ['freeze', 'opposite_hand', 'slow_mo'],
           connected: true,
           socketId: null
         }
@@ -108,6 +112,7 @@ class GameManager {
       score: 0,
       verifiedCount: 0,
       submissions: {},
+      powerups: ['freeze', 'opposite_hand', 'slow_mo'],
       connected: true,
       socketId: null
     };
@@ -206,41 +211,56 @@ class GameManager {
     return { room, oldPrompt, newPrompt };
   }
 
-  submitItemProof(roomCode, playerId, promptId, photoUrl, caption = '') {
+  submitItemProof(roomCode, playerId, promptId, photoUrl, caption = '', isLightning = false) {
     const room = this.getRoom(roomCode);
     if (!room) return { error: 'Room not found' };
     const player = room.players[playerId];
     if (!player) return { error: 'Player not found' };
 
-    const prompt = room.prompts.find((p) => p.id === promptId);
-    if (!prompt) return { error: 'Prompt not found in game deck' };
+    let prompt = room.prompts.find((p) => p.id === promptId);
+    let promptTitle = prompt?.title;
+    let promptIcon = prompt?.icon || '📸';
+    let isFrenzySubmission = false;
+    let multiplier = 1;
+
+    if (isLightning && room.lightningFrenzy && Date.now() < room.lightningFrenzy.endsAt) {
+      isFrenzySubmission = true;
+      multiplier = room.lightningFrenzy.multiplier || 2;
+      promptTitle = `⚡ ${room.lightningFrenzy.title}`;
+      promptIcon = room.lightningFrenzy.icon || '⚡';
+    }
+
+    if (!prompt && !isFrenzySubmission) return { error: 'Prompt not found in game deck' };
 
     const submission = {
-      promptId,
-      promptTitle: prompt.title,
-      promptIcon: prompt.icon,
+      promptId: isFrenzySubmission ? 'lightning-frenzy' : promptId,
+      promptTitle,
+      promptIcon,
       photoUrl,
       caption: caption.trim(),
       status: 'pending',
       submittedAt: Date.now(),
       feedback: '',
-      pointsEarned: 0
+      pointsEarned: 0,
+      isLightning: isFrenzySubmission,
+      multiplier,
+      isSecretGift: !!prompt?.isSecretGift
     };
 
-    player.submissions[promptId] = submission;
+    player.submissions[submission.promptId] = submission;
 
     room.activityLog.push({
       id: uuidv4(),
       type: 'item_submitted',
       playerId,
       playerName: player.name,
-      promptTitle: prompt.title,
-      promptIcon: prompt.icon,
-      message: `📸 ${player.name} submitted proof for "${prompt.title}"! Waiting for verification...`,
+      promptTitle: submission.promptTitle,
+      promptIcon: submission.promptIcon,
+      message: `📸 ${player.name} submitted proof for "${submission.promptTitle}"! Waiting for verification...`,
       timestamp: Date.now()
     });
 
-    return { room, submission, prompt };
+    return { room, submission, prompt: prompt || { title: promptTitle, icon: promptIcon, points: 150 } };
   }
 
   verifyItemProof(roomCode, reviewerId, targetPlayerId, promptId, approved, feedback = '') {
@@ -259,7 +279,10 @@ class GameManager {
     if (!submission) return { error: 'No submission found for this prompt' };
 
     const prompt = room.prompts.find((p) => p.id === promptId);
-    const points = prompt ? prompt.points : 100;
+    let points = prompt ? prompt.points : 100;
+    if (submission.isLightning && submission.multiplier) {
+      points = Math.round(150 * submission.multiplier);
+    }
 
     submission.status = approved ? 'approved' : 'rejected';
     submission.feedback = feedback.trim();
@@ -361,6 +384,96 @@ class GameManager {
     return { room, submission, approved, reviewer, targetPlayer };
   }
 
+  triggerLightningFrenzy(roomCode) {
+    const room = this.getRoom(roomCode);
+    if (!room) return { error: 'Room not found' };
+    const randomChallenge = LIGHTNING_CHALLENGES[Math.floor(Math.random() * LIGHTNING_CHALLENGES.length)];
+    const frenzy = {
+      id: uuidv4(),
+      title: randomChallenge.title,
+      icon: randomChallenge.icon,
+      multiplier: randomChallenge.multiplier,
+      hint: randomChallenge.hint,
+      startedAt: Date.now(),
+      endsAt: Date.now() + 180000 // 3 minutes
+    };
+    room.lightningFrenzy = frenzy;
+    room.activityLog.push({
+      id: uuidv4(),
+      type: 'lightning_frenzy',
+      message: `⚡ FLASH FRENZY: "${frenzy.title}" for ${frenzy.multiplier}X BONUS POINTS in the next 3 mins!`,
+      timestamp: Date.now()
+    });
+    return { room, frenzy };
+  }
+
+  usePowerup(roomCode, senderId, targetPlayerId, powerupId) {
+    const room = this.getRoom(roomCode);
+    if (!room) return { error: 'Room not found' };
+    const sender = room.players[senderId];
+    const target = room.players[targetPlayerId];
+    if (!sender || !target) return { error: 'Player not found' };
+
+    const powerupDef = SABOTAGE_POWERUPS.find((p) => p.id === powerupId);
+    if (!powerupDef) return { error: 'Unknown power-up' };
+
+    const idx = (sender.powerups || []).indexOf(powerupId);
+    if (idx !== -1) {
+      sender.powerups.splice(idx, 1);
+    }
+
+    const durationMs = (powerupDef.durationSeconds || 20) * 1000;
+    const endsAt = Date.now() + durationMs;
+    if (!room.activeSabotages) room.activeSabotages = {};
+    const sabotage = {
+      id: powerupDef.id,
+      name: powerupDef.name,
+      icon: powerupDef.icon,
+      description: powerupDef.description,
+      senderName: sender.name,
+      endsAt
+    };
+    room.activeSabotages[targetPlayerId] = sabotage;
+
+    room.activityLog.push({
+      id: uuidv4(),
+      type: 'sabotage_used',
+      message: `🃏 ${sender.name} played ${powerupDef.icon} ${powerupDef.name} on ${target.name}!`,
+      timestamp: Date.now()
+    });
+
+    return { room, sabotage, sender, target };
+  }
+
+  claimBingo(roomCode, playerId, lineType) {
+    const room = this.getRoom(roomCode);
+    if (!room) return { error: 'Room not found' };
+    const player = room.players[playerId];
+    if (!player) return { error: 'Player not found' };
+
+    if (!room.bingoClaims) room.bingoClaims = {};
+    const claimKey = `${playerId}-${lineType}`;
+    if (room.bingoClaims[claimKey]) {
+      return { error: 'Bingo line already claimed!' };
+    }
+    room.bingoClaims[claimKey] = Date.now();
+
+    const bonus = 300;
+    player.score += bonus;
+    if (room.gameMode === 'coop') {
+      room.teamScore += bonus;
+    }
+
+    room.activityLog.push({
+      id: uuidv4(),
+      type: 'bingo_claimed',
+      message: `🎉 BINGO! ${player.name} completed a 3x3 line (${lineType}) and claimed +${bonus} BONUS POINTS!`,
+      timestamp: Date.now()
+    });
+
+    return { room, bonus, player };
+  }
+
   addReaction(roomCode, senderId, emoji) {
     const room = this.getRoom(roomCode);
     if (!room) return null;
@@ -413,6 +526,9 @@ class GameManager {
     room.winner = null;
     room.teamScore = 0;
     room.teamVerifiedCount = 0;
+    room.lightningFrenzy = null;
+    room.activeSabotages = {};
+    room.bingoClaims = {};
     room.startedAt = Date.now();
 
     // Re-shuffle a fresh match deck for the active theme
@@ -425,6 +541,7 @@ class GameManager {
       room.players[pId].score = 0;
       room.players[pId].verifiedCount = 0;
       room.players[pId].submissions = {};
+      room.players[pId].powerups = ['freeze', 'opposite_hand', 'slow_mo'];
     }
 
     room.activityLog.push({

@@ -173,9 +173,125 @@ async function testGameFlow() {
   const casinoPrompt = createCasinoRes.room.prompts[0];
   console.log(`✅ Casino & Boardwalk Room created: ${createCasinoRes.roomCode} (Theme: ${createCasinoRes.room.themeIcon} ${createCasinoRes.room.themeName}, Sample Challenge: "${casinoPrompt.title}")`);
 
+  // Step 10: Test Riddles & Cryptic Clues theme
+  const createRiddleRes = await new Promise((resolve) => {
+    socket1.emit('create_room', {
+      hostName: 'Sherlock',
+      hostAvatar: '🕵️',
+      targetWins: 5,
+      deckSize: 20,
+      gameMode: 'coop',
+      themeId: 'riddles'
+    }, resolve);
+  });
+  if (!createRiddleRes.success || createRiddleRes.room.themeId !== 'riddles') {
+    throw new Error('Riddles theme room creation failed');
+  }
+  const sampleRiddle = createRiddleRes.room.prompts.find((p) => p.isRiddle);
+  if (!sampleRiddle || !sampleRiddle.riddleClue) {
+    throw new Error('Expected riddle prompts to contain isRiddle and riddleClue');
+  }
+  console.log(`✅ Cryptic Riddle Theme created! Sample Clue: "${sampleRiddle.title}" (Answer: ${sampleRiddle.riddleAnswer})`);
+
+  // Step 11: Test Assemble-a-Date Picnic Quest & Secret Gift
+  const createPicnicRes = await new Promise((resolve) => {
+    socket1.emit('create_room', {
+      hostName: 'Picnic Lovers',
+      hostAvatar: '🧺',
+      targetWins: 5,
+      deckSize: 20,
+      gameMode: 'coop',
+      themeId: 'picnic'
+    }, resolve);
+  });
+  if (!createPicnicRes.success || createPicnicRes.room.themeId !== 'picnic') {
+    throw new Error('Picnic theme room creation failed');
+  }
+  const secretGiftPrompt = createPicnicRes.room.prompts.find((p) => p.isSecretGift);
+  if (!secretGiftPrompt) {
+    throw new Error('Expected Picnic theme to contain a Secret Under-$5 Gift prompt');
+  }
+  console.log(`✅ Picnic & Feast Theme created! Contains: "${secretGiftPrompt.title}" (isSecretGift: true)`);
+
+  // Step 12: Test 5 Senses Adventure
+  const createSensesRes = await new Promise((resolve) => {
+    socket1.emit('create_room', {
+      hostName: 'Sensory Squad',
+      hostAvatar: '👃',
+      targetWins: 5,
+      deckSize: 20,
+      gameMode: 'versus',
+      themeId: 'senses'
+    }, resolve);
+  });
+  if (!createSensesRes.success || createSensesRes.room.themeId !== 'senses') {
+    throw new Error('5 Senses theme room creation failed');
+  }
+  console.log(`✅ 5 Senses Adventure Theme created with ${createSensesRes.room.prompts.length} sensory challenges!`);
+
+  // Step 13: Test Lightning Frenzy Flash Quest Event
+  const frenzyPromise = new Promise((resolve) => {
+    socket2.on('lightning_frenzy_alert', (data) => {
+      console.log(`⚡ Received Lightning Frenzy Alert: "${data.frenzy.title}" (${data.frenzy.multiplier}X Points)!`);
+      resolve(data);
+    });
+  });
+
+  const lightningRes = await new Promise((resolve) => {
+    socket1.emit('trigger_lightning', { roomCode }, resolve);
+  });
+  if (!lightningRes.success || !lightningRes.frenzy) {
+    throw new Error('Trigger lightning frenzy failed');
+  }
+  await frenzyPromise;
+  console.log(`✅ Lightning Frenzy triggered and broadcast successfully!`);
+
+  // Step 14: Test Playful Sabotage Power-Up in Versus Mode
+  const sabotagePromise = new Promise((resolve) => {
+    socket2.on('sabotage_triggered', (data) => {
+      console.log(`🃏 Received Sabotage Alert: ${data.message}`);
+      resolve(data);
+    });
+  });
+
+  const powerupRes = await new Promise((resolve) => {
+    socket1.emit('use_powerup', {
+      roomCode,
+      senderId: p1Id,
+      targetPlayerId: p2Id,
+      powerupId: 'freeze'
+    }, resolve);
+  });
+  if (!powerupRes.success || !powerupRes.sabotage) {
+    throw new Error('Use sabotage powerup failed');
+  }
+  await sabotagePromise;
+  console.log(`✅ Sabotage Power-Up (Aisle Freeze) executed and broadcast!`);
+
+  // Step 15: Test Claiming 3x3 Bingo Bonus
+  const bingoPromise = new Promise((resolve) => {
+    socket2.on('bingo_claimed_alert', (data) => {
+      console.log(`🎉 Received Bingo Alert: ${data.message} (+${data.bonus} pts)`);
+      resolve(data);
+    });
+  });
+
+  const bingoRes = await new Promise((resolve) => {
+    socket1.emit('claim_bingo', {
+      roomCode,
+      playerId: p1Id,
+      lineType: 'Row 1'
+    }, resolve);
+  });
+  if (!bingoRes.success || bingoRes.bonus !== 300) {
+    throw new Error('Claim bingo failed');
+  }
+  await bingoPromise;
+  console.log(`✅ 3x3 Bingo claimed and bonus points awarded (+300 pts)!`);
+
   socket1.disconnect();
   socket2.disconnect();
-  console.log('🏆 MULTI-THEME & CO-OP E2E TEST PASSED PERFECTLY!');
+  console.log('🏆 ALL SCAVENGER HUNT TWISTS & THEMES PASSED WITH 100% SUCCESS!');
   process.exit(0);
 }
 

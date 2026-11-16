@@ -1,12 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Trophy, CheckCircle2, Clock, AlertCircle, Camera, Sparkles, Plus, 
   Volume2, VolumeX, Eye, ArrowRight, ShieldCheck, Flame, Bell, MessageSquare,
-  RefreshCw, Shuffle, MoreVertical, Flag, RotateCcw, Home, X, Menu, Heart, Users
+  RefreshCw, Shuffle, MoreVertical, Flag, RotateCcw, Home, X, Menu, Heart, Users,
+  Zap, Grid, List, Lock, HelpCircle
 } from 'lucide-react';
 import { sounds } from '../utils/audio';
 
 const QUICK_REACTIONS = ['🏎️', '👀', '😂', '💀', '🔥', '📸', '🏆', '😱'];
+
+const POWERUP_DETAILS = {
+  freeze: { name: 'Aisle Freeze', icon: '🧊', desc: 'Frosted screen! Partner must wait 20s or shiver!' },
+  opposite_hand: { name: 'Wrong Hand Only', icon: '🖐️', desc: 'Partner must snap next photo with non-dominant hand!' },
+  slow_mo: { name: 'Slow-Motion Walk', icon: '🐢', desc: 'Partner must walk in dramatic slow motion for 30s!' }
+};
 
 export default function GameView({
   room,
@@ -20,13 +27,26 @@ export default function GameView({
   onSwapPrompt,
   onEndGameEarly,
   onRematch,
-  onLeaveToMainMenu
+  onLeaveToMainMenu,
+  onTriggerLightning,
+  onUsePowerup,
+  onClaimBingo
 }) {
   const [filter, setFilter] = useState('all');
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'bingo'
   const [showLogDrawer, setShowLogDrawer] = useState(false);
   const [showMenuModal, setShowMenuModal] = useState(false);
+  const [showPowerupDrawer, setShowPowerupDrawer] = useState(false);
+  const [revealedHints, setRevealedHints] = useState({});
+  const [now, setNow] = useState(Date.now());
   const [muted, setMuted] = useState(false);
   const [swappingId, setSwappingId] = useState(null);
+
+  // Clock tick for countdown timers
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const toggleMute = () => {
     sounds.muted = !muted;
@@ -41,6 +61,15 @@ export default function GameView({
   const mySubmissions = player?.submissions || {};
   const oppSubmissions = opponent?.submissions || {};
 
+  // Active Sabotage on ME
+  const myActiveSabotage = room?.activeSabotages?.[player?.id];
+  const isSabotaged = myActiveSabotage && now < myActiveSabotage.endsAt;
+  const sabotageSecondsLeft = isSabotaged ? Math.ceil((myActiveSabotage.endsAt - now) / 1000) : 0;
+
+  // Active Lightning Frenzy
+  const isLightningActive = room?.lightningFrenzy && now < room.lightningFrenzy.endsAt;
+  const lightningSecondsLeft = isLightningActive ? Math.ceil((room.lightningFrenzy.endsAt - now) / 1000) : 0;
+
   // Extract my pending approval queue
   const pendingQueue = Object.entries(mySubmissions)
     .filter(([_, sub]) => sub.status === 'pending')
@@ -49,7 +78,7 @@ export default function GameView({
       return { promptId, prompt, ...sub };
     });
 
-  // Filter prompts
+  // Filter prompts for List View
   const filteredPrompts = prompts.filter((p) => {
     const mySub = mySubmissions[p.id];
     const oppSub = oppSubmissions[p.id];
@@ -82,8 +111,42 @@ export default function GameView({
     }
   };
 
+  const toggleRiddleHint = (e, promptId) => {
+    e.stopPropagation();
+    sounds.playDing();
+    setRevealedHints(prev => ({ ...prev, [promptId]: !prev[promptId] }));
+  };
+
+  // 3x3 Bingo Calculations
+  const bingoPrompts = prompts.slice(0, 9);
+  const isItemComplete = (p) => {
+    if (!p) return false;
+    const mySub = mySubmissions[p.id];
+    const oppSub = oppSubmissions[p.id];
+    if (isCoop) return mySub?.status === 'approved' || oppSub?.status === 'approved';
+    return mySub?.status === 'approved';
+  };
+
+  // Check lines in 3x3 grid
+  const BINGO_LINES = [
+    { name: 'Row 1', indices: [0, 1, 2] },
+    { name: 'Row 2', indices: [3, 4, 5] },
+    { name: 'Row 3', indices: [6, 7, 8] },
+    { name: 'Col 1', indices: [0, 3, 6] },
+    { name: 'Col 2', indices: [1, 4, 7] },
+    { name: 'Col 3', indices: [2, 5, 8] },
+    { name: 'Diagonal ↘', indices: [0, 4, 8] },
+    { name: 'Diagonal ↗', indices: [2, 4, 6] }
+  ];
+
+  const unclaimedBingoLines = BINGO_LINES.filter((line) => {
+    const isCompleted = line.indices.every((idx) => bingoPrompts[idx] && isItemComplete(bingoPrompts[idx]));
+    const alreadyClaimed = room?.bingoClaims?.[`${player?.id}-${line.name}`];
+    return isCompleted && !alreadyClaimed;
+  });
+
   return (
-    <div className="max-w-md mx-auto p-2.5 sm:p-3 pb-20 space-y-2.5">
+    <div className={`max-w-md mx-auto p-2.5 sm:p-3 pb-24 space-y-2.5 ${isSabotaged && myActiveSabotage.id === 'freeze' ? 'border-4 border-cyan-400 rounded-3xl shadow-[0_0_25px_rgba(34,211,238,0.5)]' : ''}`}>
       {/* Top Bar with Options Menu */}
       <div className="flex items-center justify-between text-xs text-slate-400">
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -101,6 +164,24 @@ export default function GameView({
         </div>
 
         <div className="flex items-center gap-1.5">
+          {/* View Mode Toggle */}
+          <div className="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-[10px]">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-1 rounded ${viewMode === 'list' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
+              title="List View"
+            >
+              <List className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode('bingo')}
+              className={`p-1 rounded ${viewMode === 'bingo' ? 'bg-amber-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}
+              title="3x3 Bingo Grid View"
+            >
+              <Grid className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
           <button
             onClick={toggleMute}
             className="p-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition"
@@ -124,6 +205,66 @@ export default function GameView({
           </button>
         </div>
       </div>
+
+      {/* Active Sabotage Overlay Alert on Me */}
+      {isSabotaged && (
+        <div className="bg-cyan-950/90 border-2 border-cyan-400 text-cyan-200 p-2.5 rounded-xl shadow-lg flex items-center justify-between animate-in zoom-in-95 duration-200">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl animate-spin">{myActiveSabotage.icon}</span>
+            <div>
+              <div className="text-[10px] uppercase font-black tracking-wider text-cyan-300">
+                SABOTAGED BY {myActiveSabotage.senderName}!
+              </div>
+              <div className="text-xs font-bold">{myActiveSabotage.name}: {myActiveSabotage.description}</div>
+            </div>
+          </div>
+          <span className="text-xs font-mono font-black bg-cyan-900 border border-cyan-400 px-2 py-1 rounded-lg text-cyan-200 shrink-0">
+            {sabotageSecondsLeft}s
+          </span>
+        </div>
+      )}
+
+      {/* Lightning Frenzy Active Banner */}
+      {isLightningActive && (
+        <div className="bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 p-2.5 rounded-xl border-2 border-yellow-300 shadow-xl flex items-center justify-between animate-pulse">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-2xl animate-bounce">⚡</span>
+            <div className="min-w-0">
+              <div className="text-[10px] font-black uppercase tracking-wider text-slate-900 flex items-center gap-1">
+                <span>FLASH QUEST ({Math.floor(lightningSecondsLeft / 60)}:{(lightningSecondsLeft % 60).toString().padStart(2, '0')})</span>
+                <span className="bg-slate-950 text-amber-400 px-1.5 py-0.2 rounded text-[9px] font-black">{room.lightningFrenzy.multiplier}X PTS</span>
+              </div>
+              <div className="text-xs font-black truncate">{room.lightningFrenzy.title}</div>
+            </div>
+          </div>
+          <button
+            onClick={() => onOpenSnapModal({
+              id: 'lightning-frenzy',
+              title: room.lightningFrenzy.title,
+              icon: room.lightningFrenzy.icon || '⚡',
+              category: 'Lightning Frenzy',
+              points: Math.round(150 * (room.lightningFrenzy.multiplier || 2)),
+              description: `Snap proof of: ${room.lightningFrenzy.title}!`,
+              hint: room.lightningFrenzy.hint,
+              isLightning: true
+            })}
+            className="px-2.5 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-900 text-amber-300 font-black text-xs shrink-0 shadow active:scale-95 transition"
+          >
+            Snap It!
+          </button>
+        </div>
+      )}
+
+      {/* Claim Bingo Alert Banner */}
+      {unclaimedBingoLines.length > 0 && (
+        <button
+          onClick={() => onClaimBingo(unclaimedBingoLines[0].name)}
+          className="w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 text-slate-950 p-2.5 rounded-xl border-2 border-emerald-300 shadow-xl font-black text-xs flex items-center justify-center gap-2 animate-bounce transition active:scale-95"
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>🎉 BINGO! Claim +300 Bonus Points ({unclaimedBingoLines[0].name})!</span>
+        </button>
+      )}
 
       {/* Road Trip Safety Banner */}
       {room.themeId === 'roadtrip' && (
@@ -245,6 +386,20 @@ export default function GameView({
               />
             </div>
           </div>
+
+          {/* Sabotage Cards Button (Versus Mode Only) */}
+          <button
+            onClick={() => setShowPowerupDrawer(true)}
+            className="w-full py-1.5 px-3 rounded-xl bg-purple-950/60 hover:bg-purple-900/60 border border-purple-500/40 text-purple-200 text-xs font-bold flex items-center justify-between transition active:scale-98"
+          >
+            <div className="flex items-center gap-1.5">
+              <span className="text-base">🃏</span>
+              <span>Play Sabotage Card</span>
+            </div>
+            <span className="bg-purple-600/60 px-2 py-0.5 rounded-full text-[10px] text-purple-200">
+              {player.powerups?.length || 0} Ready
+            </span>
+          </button>
         </div>
       )}
 
@@ -346,205 +501,338 @@ export default function GameView({
         </div>
       </div>
 
-      {/* Filter Tabs & Custom Challenge Button */}
-      <div className="flex items-center justify-between gap-2 pt-0.5">
-        <div className="flex gap-1 p-0.5 bg-slate-800/80 rounded-lg border border-slate-700 text-[11px] font-bold">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-2.5 py-0.5 rounded-md transition ${
-              filter === 'all' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            All ({prompts.length})
-          </button>
-          <button
-            onClick={() => setFilter('todo')}
-            className={`px-2.5 py-0.5 rounded-md transition ${
-              filter === 'todo' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            {isCoop ? `Need (${prompts.length - teamVerifiedCount})` : `To Hunt (${prompts.length - myApprovedCount})`}
-          </button>
-          <button
-            onClick={() => setFilter('completed')}
-            className={`px-2.5 py-0.5 rounded-md transition ${
-              filter === 'completed' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            {isCoop ? `Team (${teamVerifiedCount})` : `Found (${myApprovedCount})`}
-          </button>
-        </div>
+      {/* 3x3 BINGO GRID VIEW OR LIST VIEW */}
+      {viewMode === 'bingo' ? (
+        /* 3x3 Bingo Grid View */
+        <div className="bg-slate-800/80 border border-amber-400/40 rounded-2xl p-3 space-y-2.5 shadow-xl">
+          <div className="flex items-center justify-between text-xs font-bold text-amber-300">
+            <div className="flex items-center gap-1.5">
+              <Grid className="w-4 h-4 text-amber-400" />
+              <span>3x3 BINGO CARD CHALLENGE</span>
+            </div>
+            <span className="text-[10px] text-slate-400 font-normal">Complete any 3-in-a-row for +300 pts!</span>
+          </div>
 
-        <button
-          onClick={onOpenAddPrompt}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 text-[11px] font-bold transition active:scale-95"
-        >
-          <Plus className="w-3 h-3" /> Custom
-        </button>
-      </div>
+          <div className="grid grid-cols-3 gap-2">
+            {bingoPrompts.map((prompt, idx) => {
+              const mySub = mySubmissions[prompt.id];
+              const oppSub = oppSubmissions[prompt.id];
+              const completed = isItemComplete(prompt);
 
-      {/* Hunt Items List */}
-      <div className="space-y-2">
-        {filteredPrompts.map((prompt) => {
-          const mySub = mySubmissions[prompt.id];
-          const oppSub = oppSubmissions[prompt.id];
-          const isTeamApproved = isCoop && (mySub?.status === 'approved' || oppSub?.status === 'approved');
-          const isMyApproved = mySub?.status === 'approved';
-          const isCompleted = isCoop ? isTeamApproved : isMyApproved;
-
-          return (
-            <div
-              key={prompt.id}
-              onClick={() => onOpenSnapModal(prompt)}
-              className={`p-3 rounded-xl border transition-all cursor-pointer active:scale-98 shadow-sm relative overflow-hidden group ${
-                isCompleted
-                  ? 'bg-slate-800/50 border-emerald-500/40 hover:border-emerald-500/70'
-                  : mySub?.status === 'pending' || oppSub?.status === 'pending'
-                  ? 'bg-slate-800/70 border-amber-500/50 hover:border-amber-500'
-                  : mySub?.status === 'rejected'
-                  ? 'bg-slate-800/70 border-rose-500/50 hover:border-rose-500'
-                  : 'bg-slate-800/80 border-slate-700/80 hover:border-slate-600 hover:bg-slate-800'
-              }`}
-            >
-              {/* Category & Points Top & Swap Button */}
-              <div className="flex items-center justify-between text-[10px] mb-1.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-slate-400 uppercase tracking-wider">
-                    {prompt.category}
-                  </span>
-                  {prompt.badge && (
-                    <span className="px-1.5 py-0.2 rounded bg-slate-700/60 text-slate-300 font-medium">
-                      {prompt.badge}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <span className="font-black text-amber-400">
-                    +{prompt.points} PTS
-                  </span>
-
-                  {!isCompleted && (
-                    <button
-                      onClick={(e) => handleSwapClick(e, prompt.id)}
-                      disabled={swappingId === prompt.id}
-                      title="Don't like this item? Swap it!"
-                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-700/70 hover:bg-slate-600 text-slate-300 hover:text-white transition active:scale-95 text-[9px] font-bold"
-                    >
-                      <Shuffle className={`w-2.5 h-2.5 ${swappingId === prompt.id ? 'animate-spin' : ''}`} />
-                      <span>Swap</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Title & Icon */}
-              <div className="flex items-start gap-2.5">
-                <div className="text-2xl p-1.5 rounded-lg bg-slate-900/80 border border-slate-700 shrink-0">
-                  {prompt.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-white text-sm leading-snug">
+              return (
+                <div
+                  key={prompt.id}
+                  onClick={() => onOpenSnapModal(prompt)}
+                  className={`aspect-square p-2 rounded-xl border flex flex-col items-center justify-between text-center cursor-pointer active:scale-95 transition relative overflow-hidden ${
+                    completed
+                      ? 'bg-emerald-950/70 border-emerald-400/80 text-emerald-200'
+                      : mySub?.status === 'pending'
+                      ? 'bg-amber-950/70 border-amber-400/80 text-amber-200'
+                      : 'bg-slate-900/80 border-slate-700 hover:border-slate-500'
+                  }`}
+                >
+                  <span className="text-2xl pt-1">{prompt.icon}</span>
+                  <span className="text-[10px] font-bold line-clamp-2 leading-tight text-white px-0.5">
                     {prompt.title}
-                  </h4>
-                  <p className="text-[11px] text-slate-300 line-clamp-1 mt-0.5 leading-snug">
-                    {prompt.description}
-                  </p>
+                  </span>
+                  <div className="w-full flex items-center justify-between text-[9px] font-black pt-1 border-t border-slate-700/50">
+                    <span className="text-amber-400">+{prompt.points}</span>
+                    {completed ? (
+                      <span className="text-emerald-400 flex items-center gap-0.5">
+                        <CheckCircle2 className="w-3 h-3" />
+                      </span>
+                    ) : (
+                      <span className="text-slate-500">#{idx + 1}</span>
+                    )}
+                  </div>
                 </div>
-              </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        /* Regular List View */
+        <>
+          {/* Filter Tabs & Custom Challenge Button */}
+          <div className="flex items-center justify-between gap-2 pt-0.5">
+            <div className="flex gap-1 p-0.5 bg-slate-800/80 rounded-lg border border-slate-700 text-[11px] font-bold">
+              <button
+                onClick={() => setFilter('all')}
+                className={`px-2.5 py-0.5 rounded-md transition ${
+                  filter === 'all' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                All ({prompts.length})
+              </button>
+              <button
+                onClick={() => setFilter('todo')}
+                className={`px-2.5 py-0.5 rounded-md transition ${
+                  filter === 'todo' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {isCoop ? `Need (${prompts.length - teamVerifiedCount})` : `To Hunt (${prompts.length - myApprovedCount})`}
+              </button>
+              <button
+                onClick={() => setFilter('completed')}
+                className={`px-2.5 py-0.5 rounded-md transition ${
+                  filter === 'completed' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {isCoop ? `Team (${teamVerifiedCount})` : `Found (${myApprovedCount})`}
+              </button>
+            </div>
 
-              {/* Status Footer */}
-              <div className="mt-2 pt-2 border-t border-slate-700/60 flex items-center justify-between text-[11px]">
-                {isCoop ? (
-                  /* Co-Op Team Status */
-                  <div className="w-full flex items-center justify-between">
-                    <div>
-                      {mySub?.status === 'approved' ? (
-                        <span className="inline-flex items-center gap-1 text-emerald-400 font-bold">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Found by You (+{mySub.pointsEarned} team pts)
+            <button
+              onClick={onOpenAddPrompt}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 text-[11px] font-bold transition active:scale-95"
+            >
+              <Plus className="w-3 h-3" /> Custom
+            </button>
+          </div>
+
+          {/* Hunt Items List */}
+          <div className="space-y-2">
+            {filteredPrompts.map((prompt) => {
+              const mySub = mySubmissions[prompt.id];
+              const oppSub = oppSubmissions[prompt.id];
+              const isTeamApproved = isCoop && (mySub?.status === 'approved' || oppSub?.status === 'approved');
+              const isMyApproved = mySub?.status === 'approved';
+              const isCompleted = isCoop ? isTeamApproved : isMyApproved;
+
+              return (
+                <div
+                  key={prompt.id}
+                  onClick={() => onOpenSnapModal(prompt)}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer active:scale-98 shadow-sm relative overflow-hidden group ${
+                    isCompleted
+                      ? 'bg-slate-800/50 border-emerald-500/40 hover:border-emerald-500/70'
+                      : mySub?.status === 'pending' || oppSub?.status === 'pending'
+                      ? 'bg-slate-800/70 border-amber-500/50 hover:border-amber-500'
+                      : mySub?.status === 'rejected'
+                      ? 'bg-slate-800/70 border-rose-500/50 hover:border-rose-500'
+                      : 'bg-slate-800/80 border-slate-700/80 hover:border-slate-600 hover:bg-slate-800'
+                  }`}
+                >
+                  {/* Category & Points Top & Swap Button */}
+                  <div className="flex items-center justify-between text-[10px] mb-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-slate-400 uppercase tracking-wider">
+                        {prompt.category}
+                      </span>
+                      {prompt.badge && (
+                        <span className="px-1.5 py-0.2 rounded bg-slate-700/60 text-slate-300 font-medium">
+                          {prompt.badge}
                         </span>
-                      ) : oppSub?.status === 'approved' ? (
-                        <span className="inline-flex items-center gap-1 text-emerald-400 font-bold">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Found by {opponent?.name || 'Partner'} (+{oppSub.pointsEarned} team pts)
+                      )}
+                      {prompt.isRiddle && (
+                        <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                          📜 Riddle
                         </span>
-                      ) : mySub?.status === 'pending' ? (
-                        <span className="inline-flex items-center gap-1 text-amber-400 font-bold animate-pulse">
-                          <Clock className="w-3.5 h-3.5" /> In Approval Queue...
-                        </span>
-                      ) : oppSub?.status === 'pending' ? (
-                        <span className="inline-flex items-center gap-1 text-amber-400 font-bold animate-pulse">
-                          <Eye className="w-3.5 h-3.5" /> Partner submitted! Tap to verify!
-                        </span>
-                      ) : mySub?.status === 'rejected' ? (
-                        <span className="inline-flex items-center gap-1 text-rose-400 font-bold">
-                          <AlertCircle className="w-3.5 h-3.5" /> Rejected! Tap to retake
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-blue-400 font-bold">
-                          <Camera className="w-3.5 h-3.5" /> Tap to Hunt & Snap for Team
+                      )}
+                      {prompt.isSecretGift && (
+                        <span className="px-1.5 py-0.2 rounded bg-pink-500/20 text-pink-300 font-bold border border-pink-500/30">
+                          🤫 Secret &lt;$5
                         </span>
                       )}
                     </div>
-                    <div className="text-[10px] text-slate-500 font-semibold">
-                      🤝 Team
+
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-black text-amber-400">
+                        +{prompt.points} PTS
+                      </span>
+
+                      {!isCompleted && (
+                        <button
+                          onClick={(e) => handleSwapClick(e, prompt.id)}
+                          disabled={swappingId === prompt.id}
+                          title="Don't like this item? Swap it!"
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-700/70 hover:bg-slate-600 text-slate-300 hover:text-white transition active:scale-95 text-[9px] font-bold"
+                        >
+                          <Shuffle className={`w-2.5 h-2.5 ${swappingId === prompt.id ? 'animate-spin' : ''}`} />
+                          <span>Swap</span>
+                        </button>
+                      )}
                     </div>
                   </div>
-                ) : (
-                  /* Versus Mode Status */
-                  <>
-                    <div>
-                      {mySub?.status === 'approved' && (
-                        <span className="inline-flex items-center gap-1 text-emerald-400 font-bold">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Verified (+{mySub.pointsEarned} pts)
-                        </span>
-                      )}
-                      {mySub?.status === 'pending' && (
-                        <span className="inline-flex items-center gap-1 text-amber-400 font-bold animate-pulse">
-                          <Clock className="w-3.5 h-3.5" /> In Approval Queue...
-                        </span>
-                      )}
-                      {mySub?.status === 'rejected' && (
-                        <span className="inline-flex items-center gap-1 text-rose-400 font-bold">
-                          <AlertCircle className="w-3.5 h-3.5" /> Rejected! Tap to retake
-                        </span>
-                      )}
-                      {!mySub && (
-                        <span className="inline-flex items-center gap-1 text-blue-400 font-bold">
-                          <Camera className="w-3.5 h-3.5" /> Tap to Hunt & Snap
-                        </span>
-                      )}
-                    </div>
 
-                    <div className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
-                      <span>{opponent?.avatar || 'Partner'}:</span>
-                      {oppSub?.status === 'approved' ? (
-                        <span className="text-emerald-400 font-bold">Found ✅</span>
-                      ) : oppSub?.status === 'pending' ? (
-                        <span className="text-amber-400 font-bold">Inspecting...</span>
+                  {/* Title & Icon */}
+                  <div className="flex items-start gap-2.5">
+                    <div className="text-2xl p-1.5 rounded-lg bg-slate-900/80 border border-slate-700 shrink-0">
+                      {prompt.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-white text-sm leading-snug">
+                        {prompt.title}
+                      </h4>
+                      {prompt.isRiddle ? (
+                        <p className="font-serif italic text-amber-200 text-xs mt-1 leading-relaxed bg-slate-950/60 p-2 rounded-lg border border-amber-500/20 whitespace-pre-line">
+                          "{prompt.riddleClue}"
+                        </p>
                       ) : (
-                        <span className="text-slate-500">Searching...</span>
+                        <p className="text-[11px] text-slate-300 line-clamp-1 mt-0.5 leading-snug">
+                          {prompt.description}
+                        </p>
+                      )}
+
+                      {/* Riddle Hint Toggle */}
+                      {prompt.isRiddle && prompt.riddleHint && (
+                        <div className="mt-1">
+                          {revealedHints[prompt.id] ? (
+                            <span className="text-[10px] text-amber-300 font-medium bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20 inline-block">
+                              💡 <b>Hint:</b> {prompt.riddleHint}
+                            </span>
+                          ) : (
+                            <button
+                              onClick={(e) => toggleRiddleHint(e, prompt.id)}
+                              className="text-[10px] text-amber-400 hover:text-amber-300 font-bold underline"
+                            >
+                              💡 Reveal Clue Hint
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
-                  </>
-                )}
+                  </div>
+
+                  {/* Status Footer */}
+                  <div className="mt-2 pt-2 border-t border-slate-700/60 flex items-center justify-between text-[11px]">
+                    {isCoop ? (
+                      /* Co-Op Team Status */
+                      <div className="w-full flex items-center justify-between">
+                        <div>
+                          {mySub?.status === 'approved' ? (
+                            <span className="inline-flex items-center gap-1 text-emerald-400 font-bold">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Found by You (+{mySub.pointsEarned} team pts)
+                            </span>
+                          ) : oppSub?.status === 'approved' ? (
+                            <span className="inline-flex items-center gap-1 text-emerald-400 font-bold">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Found by {opponent?.name || 'Partner'} (+{oppSub.pointsEarned} team pts)
+                            </span>
+                          ) : mySub?.status === 'pending' ? (
+                            <span className="inline-flex items-center gap-1 text-amber-400 font-bold animate-pulse">
+                              <Clock className="w-3.5 h-3.5" /> In Approval Queue...
+                            </span>
+                          ) : oppSub?.status === 'pending' ? (
+                            <span className="inline-flex items-center gap-1 text-amber-400 font-bold animate-pulse">
+                              <Eye className="w-3.5 h-3.5" /> Partner submitted! Tap to verify!
+                            </span>
+                          ) : mySub?.status === 'rejected' ? (
+                            <span className="inline-flex items-center gap-1 text-rose-400 font-bold">
+                              <AlertCircle className="w-3.5 h-3.5" /> Rejected! Tap to retake
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-blue-400 font-bold">
+                              <Camera className="w-3.5 h-3.5" /> Tap to Hunt & Snap for Team
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-semibold">
+                          🤝 Team
+                        </div>
+                      </div>
+                    ) : (
+                      /* Versus Mode Status */
+                      <>
+                        <div>
+                          {mySub?.status === 'approved' && (
+                            <span className="inline-flex items-center gap-1 text-emerald-400 font-bold">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Verified (+{mySub.pointsEarned} pts)
+                            </span>
+                          )}
+                          {mySub?.status === 'pending' && (
+                            <span className="inline-flex items-center gap-1 text-amber-400 font-bold animate-pulse">
+                              <Clock className="w-3.5 h-3.5" /> In Approval Queue...
+                            </span>
+                          )}
+                          {mySub?.status === 'rejected' && (
+                            <span className="inline-flex items-center gap-1 text-rose-400 font-bold">
+                              <AlertCircle className="w-3.5 h-3.5" /> Rejected! Tap to retake
+                            </span>
+                          )}
+                          {!mySub && (
+                            <span className="inline-flex items-center gap-1 text-blue-400 font-bold">
+                              <Camera className="w-3.5 h-3.5" /> Tap to Hunt & Snap
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                          <span>{opponent?.avatar || 'Partner'}:</span>
+                          {oppSub?.status === 'approved' ? (
+                            <span className="text-emerald-400 font-bold">Verified</span>
+                          ) : oppSub?.status === 'pending' ? (
+                            <span className="text-amber-400 font-bold">Pending Review</span>
+                          ) : (
+                            <span className="text-slate-500">Searching...</span>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Sabotage Power-Ups Drawer (Versus Mode) */}
+      {showPowerupDrawer && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end justify-center p-3 sm:p-4">
+          <div className="bg-slate-900 border-2 border-purple-500/60 rounded-3xl max-w-sm w-full p-4 space-y-3.5 shadow-2xl animate-in slide-in-from-bottom duration-200">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xl">🃏</span>
+                <h3 className="font-bold text-white text-sm">Playful Sabotage Cards</h3>
               </div>
+              <button onClick={() => setShowPowerupDrawer(false)} className="text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
             </div>
-          );
-        })}
-      </div>
 
-      {/* Bottom Game Controls Bar */}
-      <div className="pt-3 pb-6">
-        <button
-          onClick={() => setShowMenuModal(true)}
-          className="w-full py-3.5 px-4 rounded-2xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700/80 text-slate-200 hover:text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition active:scale-98"
-        >
-          <Menu className="w-4 h-4 text-amber-400" />
-          <span>Game Options (End Match • Rematch • Main Menu)</span>
-        </button>
-      </div>
+            <p className="text-xs text-slate-300">
+              Pick a playful handicap to spring on <b>{opponent?.name || 'Partner'}</b>!
+            </p>
 
-      {/* Game Options Menu Modal */}
+            <div className="space-y-2">
+              {(player.powerups || []).length === 0 ? (
+                <div className="text-center py-6 text-xs text-slate-400 bg-slate-950/60 rounded-xl border border-slate-800">
+                  No sabotage cards remaining! Verify more finds to reload.
+                </div>
+              ) : (
+                (player.powerups || []).map((powerupId, idx) => {
+                  const card = POWERUP_DETAILS[powerupId] || { name: powerupId, icon: '🃏', desc: 'Sabotage effect' };
+                  return (
+                    <div
+                      key={idx}
+                      className="p-2.5 rounded-xl bg-slate-800/80 border border-purple-500/30 flex items-center justify-between gap-2"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-2xl">{card.icon}</span>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-white">{card.name}</div>
+                          <div className="text-[10px] text-purple-300 truncate">{card.desc}</div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setShowPowerupDrawer(false);
+                          onUsePowerup(opponent?.id, powerupId);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-bold text-xs shrink-0 shadow"
+                      >
+                        Play!
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Options Menu Modal */}
       {showMenuModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="bg-slate-900 border border-slate-700 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl animate-in slide-in-from-bottom duration-200">
@@ -568,11 +856,22 @@ export default function GameView({
               <button
                 onClick={() => {
                   setShowMenuModal(false);
+                  onTriggerLightning();
+                }}
+                className="w-full py-2.5 px-4 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold flex items-center gap-2.5 transition text-left"
+              >
+                <Zap className="w-4 h-4 text-amber-400" />
+                <span>⚡ Trigger Lightning Frenzy Flash Quest!</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowMenuModal(false);
                   if (window.confirm('Are you sure you want to end the match early and view the results?')) {
                     onEndGameEarly();
                   }
                 }}
-                className="w-full py-3 px-4 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold flex items-center gap-2.5 transition text-left"
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold flex items-center gap-2.5 transition text-left"
               >
                 <Flag className="w-4 h-4 text-amber-400" />
                 <span>End Match Early & See Results</span>
@@ -585,7 +884,7 @@ export default function GameView({
                     onRematch();
                   }
                 }}
-                className="w-full py-3 px-4 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 font-bold flex items-center gap-2.5 transition text-left"
+                className="w-full py-2.5 px-4 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 font-bold flex items-center gap-2.5 transition text-left"
               >
                 <RotateCcw className="w-4 h-4 text-blue-400" />
                 <span>Rematch / Reset Scores</span>
@@ -598,7 +897,7 @@ export default function GameView({
                     onLeaveToMainMenu();
                   }
                 }}
-                className="w-full py-3 px-4 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 font-bold flex items-center gap-2.5 transition text-left"
+                className="w-full py-2.5 px-4 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 font-bold flex items-center gap-2.5 transition text-left"
               >
                 <Home className="w-4 h-4 text-rose-400" />
                 <span>Leave to Main Menu / New Room</span>

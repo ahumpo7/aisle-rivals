@@ -74,7 +74,7 @@ export default function SnapModal({ prompt, player, opponent, onClose, onSubmitP
         throw new Error(data.error || 'Failed to upload photo');
       }
 
-      onSubmitProof(prompt.id, data.url, caption);
+      onSubmitProof(prompt.id, data.url, caption, !!prompt.isLightning);
       onClose();
     } catch (err) {
       console.error(err);
@@ -117,6 +117,34 @@ export default function SnapModal({ prompt, player, opponent, onClose, onSubmitP
 
         {/* Modal Body */}
         <div className="p-5 overflow-y-auto space-y-4 text-sm flex-1">
+          {/* Riddle Box */}
+          {prompt.isRiddle && (
+            <div className="bg-amber-950/40 border-2 border-amber-500/50 rounded-2xl p-3.5 text-amber-200 space-y-2 shadow-inner">
+              <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-amber-400">
+                <span>📜 Cryptic Riddle Clue</span>
+              </div>
+              <p className="font-serif italic text-xs whitespace-pre-line text-amber-100 leading-relaxed bg-slate-950/70 p-3 rounded-xl border border-amber-500/30">
+                "{prompt.riddleClue}"
+              </p>
+              {prompt.riddleHint && (
+                <div className="text-xs text-amber-300 font-medium flex items-center gap-1">
+                  <span>💡 <b>Hint:</b> {prompt.riddleHint}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Secret Gift Box */}
+          {prompt.isSecretGift && (
+            <div className="bg-pink-950/40 border border-pink-500/50 rounded-xl p-3 text-pink-200 text-xs flex items-center gap-2.5">
+              <span className="text-2xl">🤫</span>
+              <div>
+                <b className="text-pink-300 block font-bold">Top Secret Purchase:</b>
+                Your photo will be blurred on your partner's phone until the Grand Reveal post-game!
+              </div>
+            </div>
+          )}
+
           {/* Prompt Instructions */}
           <div className="bg-slate-800/60 rounded-2xl p-4 border border-slate-700/60 space-y-2">
             <p className="text-slate-200 font-medium leading-relaxed">

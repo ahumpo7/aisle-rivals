@@ -109,6 +109,59 @@ export default function GameOverModal({ room, player, onRematch, onLeaveToMainMe
             </div>
           )}
 
+          {/* Secret Gift Reveal Section */}
+          {(() => {
+            const secretPrompts = room.prompts.filter((p) => p.isSecretGift);
+            if (secretPrompts.length === 0) return null;
+            const p1 = playersList[0];
+            const p2 = playersList[1];
+            const p1Gift = secretPrompts.map((p) => p1?.submissions?.[p.id]).find(Boolean);
+            const p2Gift = secretPrompts.map((p) => p2?.submissions?.[p.id]).find(Boolean);
+            if (!p1Gift && !p2Gift) return null;
+
+            return (
+              <div className="bg-gradient-to-r from-pink-950/60 via-purple-950/60 to-pink-950/60 border-2 border-pink-400/50 rounded-2xl p-4 space-y-3 shadow-xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl animate-bounce">🎁</span>
+                    <div>
+                      <h3 className="font-black text-pink-300 text-sm">THE GRAND SECRET GIFT REVEAL</h3>
+                      <p className="text-[11px] text-pink-200/80">Here are the mystery treats you secretly picked for each other!</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="bg-slate-900/80 border border-pink-500/30 rounded-xl p-2.5 text-center space-y-1.5">
+                    <span className="text-[11px] font-bold text-pink-300 truncate block">{p1?.avatar} {p1?.name}'s Gift for {p2?.name}</span>
+                    {p1Gift?.photoUrl ? (
+                      <div className="aspect-square rounded-lg overflow-hidden border border-pink-500/40 relative">
+                        <img src={p1Gift.photoUrl} alt="Secret Gift" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="aspect-square bg-slate-950 rounded-lg flex items-center justify-center text-xs text-slate-500">
+                        No Gift Snapped
+                      </div>
+                    )}
+                    {p1Gift?.caption && <p className="text-[10px] text-slate-300 italic">"{p1Gift.caption}"</p>}
+                  </div>
+                  <div className="bg-slate-900/80 border border-pink-500/30 rounded-xl p-2.5 text-center space-y-1.5">
+                    <span className="text-[11px] font-bold text-pink-300 truncate block">{p2?.avatar} {p2?.name}'s Gift for {p1?.name}</span>
+                    {p2Gift?.photoUrl ? (
+                      <div className="aspect-square rounded-lg overflow-hidden border border-pink-500/40 relative">
+                        <img src={p2Gift.photoUrl} alt="Secret Gift" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="aspect-square bg-slate-950 rounded-lg flex items-center justify-center text-xs text-slate-500">
+                        No Gift Snapped
+                      </div>
+                    )}
+                    {p2Gift?.caption && <p className="text-[10px] text-slate-300 italic">"{p2Gift.caption}"</p>}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Couples Memory Scrapbook of Finds */}
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between">

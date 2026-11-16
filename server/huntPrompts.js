@@ -2781,6 +2781,45 @@ const THEMES = {
   }
 };
 
+// Import unique twists: Riddles, Date-Building Picnic Quest, and 5 Senses Adventure
+const { RIDDLE_PROMPTS, PICNIC_PROMPTS, SENSES_PROMPTS, LIGHTNING_CHALLENGES, SABOTAGE_POWERUPS } = require('./extraThemes');
+
+THEMES.riddles = {
+  id: 'riddles',
+  name: 'Cryptic Riddles & Clues',
+  shortName: 'Riddle Quest',
+  subtitle: 'Poetic Clues & Store Secrets',
+  icon: '🕵️',
+  accentColor: 'from-amber-600 to-yellow-600',
+  badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  description: 'Solve rhyming riddles and cryptic clues. Each prompt is a puzzle poem leading to an item in the aisles!',
+  prompts: RIDDLE_PROMPTS
+};
+
+THEMES.picnic = {
+  id: 'picnic',
+  name: 'Assemble-a-Date: Picnic & Feast',
+  shortName: 'Picnic Quest',
+  subtitle: 'Build an Impromptu Feast Together',
+  icon: '🧺',
+  accentColor: 'from-emerald-600 to-teal-600',
+  badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  description: 'A culinary mission! Gather artisanal cheese, crusty baguettes, secret $5 treats, and toast drinks for a feast right after.',
+  prompts: PICNIC_PROMPTS
+};
+
+THEMES.senses = {
+  id: 'senses',
+  name: 'The 5 Senses Adventure',
+  shortName: '5 Senses',
+  subtitle: 'Smell, Touch, Sound, Sight & Taste',
+  icon: '👃',
+  accentColor: 'from-purple-600 to-pink-600',
+  badgeColor: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  description: 'Explore through your 5 senses: the softest textures, craziest crunch sounds, nostaglic aromas, and extreme sour flavors.',
+  prompts: SENSES_PROMPTS
+};
+
 // Backwards compatibility for single-deck imports
 const HUNT_PROMPTS = THEMES.supermarket.prompts;
 
@@ -2811,6 +2850,8 @@ function getPromptsByTheme(themeId) {
 module.exports = {
   THEMES,
   HUNT_PROMPTS,
+  LIGHTNING_CHALLENGES,
+  SABOTAGE_POWERUPS,
   getTheme,
   getAllThemes,
   getPromptsByTheme

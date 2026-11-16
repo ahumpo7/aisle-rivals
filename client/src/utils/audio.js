@@ -188,6 +188,112 @@ class SoundManager {
       this.scheduleRelease(1200);
     } catch (e) {}
   }
+
+  // Lightning Frenzy alert sound
+  playLightning() {
+    if (this.muted) return;
+    this.vibrate([100, 40, 100, 40, 150]);
+    try {
+      this.init();
+      if (!this.ctx) return;
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1200, this.ctx.currentTime + 0.25);
+
+      gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.3);
+
+      this.scheduleRelease(350);
+    } catch (e) {}
+  }
+
+  // Freeze / Ice sabotage sound
+  playFreeze() {
+    if (this.muted) return;
+    this.vibrate([150, 60, 150]);
+    try {
+      this.init();
+      if (!this.ctx) return;
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1400, this.ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(450, this.ctx.currentTime + 0.35);
+
+      gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.35);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.35);
+
+      this.scheduleRelease(400);
+    } catch (e) {}
+  }
+
+  // Bingo celebration sound
+  playBingo() {
+    if (this.muted) return;
+    this.vibrate([100, 50, 100, 50, 250]);
+    try {
+      this.init();
+      if (!this.ctx) return;
+
+      const chord = [523.25, 659.25, 783.99, 1046.5];
+      chord.forEach((freq) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
+
+        gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.7);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.7);
+      });
+
+      this.scheduleRelease(750);
+    } catch (e) {}
+  }
+
+  // Powerup / Sabotage activation sound
+  playPowerup() {
+    if (this.muted) return;
+    this.vibrate([80, 40, 80]);
+    try {
+      this.init();
+      if (!this.ctx) return;
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.15);
+
+      gain.gain.setValueAtTime(0.16, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.2);
+
+      this.scheduleRelease(250);
+    } catch (e) {}
+  }
 }
 
 export const sounds = new SoundManager();

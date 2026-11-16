@@ -158,11 +158,32 @@ export default function App() {
       }, 2000);
     };
 
+    // Lightning Frenzy alert
+    const handleLightningAlert = (data) => {
+      sounds.playLightning();
+      showToast(data.message || '⚡ FLASH QUEST TRIGGERED! Triple bonus active!');
+    };
+
+    // Sabotage triggered alert
+    const handleSabotageTriggered = (data) => {
+      sounds.playFreeze();
+      showToast(data.message || '🃏 Sabotage card activated!');
+    };
+
+    // Bingo claimed alert
+    const handleBingoClaimed = (data) => {
+      sounds.playBingo();
+      showToast(data.message || '🎉 BINGO! Bonus points awarded!');
+    };
+
     socket.on('room_updated', handleRoomUpdated);
     socket.on('partner_item_submitted', handlePartnerSubmitted);
     socket.on('item_verification_result', handleVerificationResult);
     socket.on('item_swapped_alert', handleItemSwapped);
     socket.on('live_reaction', handleLiveReaction);
+    socket.on('lightning_frenzy_alert', handleLightningAlert);
+    socket.on('sabotage_triggered', handleSabotageTriggered);
+    socket.on('bingo_claimed_alert', handleBingoClaimed);
 
     return () => {
       socket.off('room_updated', handleRoomUpdated);
@@ -170,6 +191,9 @@ export default function App() {
       socket.off('item_verification_result', handleVerificationResult);
       socket.off('item_swapped_alert', handleItemSwapped);
       socket.off('live_reaction', handleLiveReaction);
+      socket.off('lightning_frenzy_alert', handleLightningAlert);
+      socket.off('sabotage_triggered', handleSabotageTriggered);
+      socket.off('bingo_claimed_alert', handleBingoClaimed);
     };
   }, [playerId]);
 
@@ -185,17 +209,61 @@ export default function App() {
     localStorage.setItem('aisle_rivals_player', newPlayerId);
   };
 
-  const handleSubmitProof = (promptId, photoUrl, caption) => {
+  const handleSubmitProof = (promptId, photoUrl, caption, isLightning = false) => {
     if (!room || !playerId) return;
     socket.emit('submit_item', {
       roomCode: room.roomCode,
       playerId,
       promptId,
       photoUrl,
-      caption
+      caption,
+      isLightning
     }, (res) => {
       if (res?.success && res.room) {
         setRoom(res.room);
+      }
+    });
+  };
+
+  const handleTriggerLightning = () => {
+    if (!room) return;
+    socket.emit('trigger_lightning', { roomCode: room.roomCode }, (res) => {
+      if (res?.success && res.room) {
+        setRoom(res.room);
+        sounds.playLightning();
+      }
+    });
+  };
+
+  const handleUsePowerup = (targetPlayerId, powerupId) => {
+    if (!room || !playerId) return;
+    socket.emit('use_powerup', {
+      roomCode: room.roomCode,
+      senderId: playerId,
+      targetPlayerId,
+      powerupId
+    }, (res) => {
+      if (res?.success && res.room) {
+        setRoom(res.room);
+        sounds.playPowerup();
+        showToast(`🃏 Used ${res.sabotage.name}!`);
+      } else {
+        showToast(res?.error || 'Could not use power-up');
+      }
+    });
+  };
+
+  const handleClaimBingo = (lineType) => {
+    if (!room || !playerId) return;
+    socket.emit('claim_bingo', {
+      roomCode: room.roomCode,
+      playerId,
+      lineType
+    }, (res) => {
+      if (res?.success && res.room) {
+        setRoom(res.room);
+        sounds.playBingo();
+        showToast(`🎉 BINGO! Claimed +${res.bonus} Bonus Points!`);
       }
     });
   };
@@ -336,6 +404,9 @@ export default function App() {
             onEndGameEarly={handleEndGameEarly}
             onRematch={handleRematch}
             onLeaveToMainMenu={handleLeaveToMainMenu}
+            onTriggerLightning={handleTriggerLightning}
+            onUsePowerup={handleUsePowerup}
+            onClaimBingo={handleClaimBingo}
           />
         )}
       </main>

@@ -243,12 +243,12 @@ io.on('connection', (socket) => {
   });
 
   // Submit Item Proof
-  socket.on('submit_item', ({ roomCode, playerId, promptId, photoUrl, caption }, callback) => {
+  socket.on('submit_item', ({ roomCode, playerId, promptId, photoUrl, caption, isLightning }, callback) => {
     if (roomCode) {
       socket.join(roomCode.toUpperCase());
       gameManager.setPlayerSocket(roomCode, playerId, socket.id);
     }
-    const result = gameManager.submitItemProof(roomCode, playerId, promptId, photoUrl, caption);
+    const result = gameManager.submitItemProof(roomCode, playerId, promptId, photoUrl, caption, isLightning);
     if (result.error) {
       if (callback) callback({ success: false, error: result.error });
       return;
@@ -266,6 +266,62 @@ io.on('connection', (socket) => {
     });
 
     if (callback) callback({ success: true, room: result.room });
+  });
+
+  // Trigger Lightning Frenzy Flash Challenge
+  socket.on('trigger_lightning', ({ roomCode }, callback) => {
+    const result = gameManager.triggerLightningFrenzy(roomCode);
+    if (result.error) {
+      if (callback) callback({ success: false, error: result.error });
+      return;
+    }
+
+    io.to(roomCode.toUpperCase()).emit('room_updated', result.room);
+    io.to(roomCode.toUpperCase()).emit('lightning_frenzy_alert', {
+      frenzy: result.frenzy,
+      message: `⚡ FLASH QUEST (3 Mins): "${result.frenzy.title}" for ${result.frenzy.multiplier}X POINTS!`
+    });
+
+    if (callback) callback({ success: true, room: result.room, frenzy: result.frenzy });
+  });
+
+  // Use Playful Sabotage Power-Up Card (Versus Mode)
+  socket.on('use_powerup', ({ roomCode, senderId, targetPlayerId, powerupId }, callback) => {
+    const result = gameManager.usePowerup(roomCode, senderId, targetPlayerId, powerupId);
+    if (result.error) {
+      if (callback) callback({ success: false, error: result.error });
+      return;
+    }
+
+    io.to(roomCode.toUpperCase()).emit('room_updated', result.room);
+    io.to(roomCode.toUpperCase()).emit('sabotage_triggered', {
+      sabotage: result.sabotage,
+      senderName: result.sender.name,
+      targetName: result.target.name,
+      targetId: targetPlayerId,
+      message: `🃏 ${result.sender.name} played ${result.sabotage.icon} ${result.sabotage.name} on ${result.target.name}!`
+    });
+
+    if (callback) callback({ success: true, room: result.room, sabotage: result.sabotage });
+  });
+
+  // Claim 3x3 Bingo Line Completion (+300 pts)
+  socket.on('claim_bingo', ({ roomCode, playerId, lineType }, callback) => {
+    const result = gameManager.claimBingo(roomCode, playerId, lineType);
+    if (result.error) {
+      if (callback) callback({ success: false, error: result.error });
+      return;
+    }
+
+    io.to(roomCode.toUpperCase()).emit('room_updated', result.room);
+    io.to(roomCode.toUpperCase()).emit('bingo_claimed_alert', {
+      player: result.player,
+      bonus: result.bonus,
+      lineType,
+      message: `🎉 BINGO! ${result.player.name} completed a 3x3 line and earned +${result.bonus} BONUS POINTS!`
+    });
+
+    if (callback) callback({ success: true, room: result.room, bonus: result.bonus });
   });
 
   // Verify Item Proof (Approve / Reject)
