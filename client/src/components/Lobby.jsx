@@ -264,19 +264,29 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
               <Sparkles className="w-4 h-4 text-amber-400" /> Match Mode:
             </span>
             <span className={`px-2.5 py-0.5 rounded-lg font-black text-xs ${
-              room.gameMode === 'coop' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+              room.gameMode === 'bingo'
+                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                : room.gameMode === 'coop'
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
             }`}>
-              {room.gameMode === 'coop' ? '🤝 Team Effort' : '⚔️ Head-to-Head'}
+              {room.gameMode === 'bingo' ? '🎯 3x3 Bingo Faceoff' : room.gameMode === 'coop' ? '🤝 Team Effort' : '⚔️ Head-to-Head'}
             </span>
           </div>
           <div className="flex items-center justify-between text-slate-300">
             <span>{room.gameMode === 'coop' ? 'Team Objective:' : 'Win Condition:'}</span>
             <span className="px-2.5 py-1 rounded-lg bg-blue-600/30 text-blue-300 font-bold border border-blue-500/30">
-              {room.gameMode === 'coop' ? `Find ${room.targetWins} Items Together!` : `First to ${room.targetWins} Verified Items!`}
+              {room.gameMode === 'bingo'
+                ? (room.targetWins === 9 ? 'Full 9-Square Blackout!' : `First to Complete ${room.targetWins} Line(s)!`)
+                : room.gameMode === 'coop'
+                ? `Find ${room.targetWins} Items Together!`
+                : `First to ${room.targetWins} Verified Items!`}
             </span>
           </div>
           <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-700/50">
-            {room.gameMode === 'coop'
+            {room.gameMode === 'bingo'
+              ? '🎯 Race against your partner on a 3x3 grid! Complete a row, column, or diagonal to shout BINGO and win!'
+              : room.gameMode === 'coop'
               ? '🤝 Divide and conquer! When you snap an item, your partner verifies it to score points for your team!'
               : '⚔️ Racing against each other! When you snap an item, your partner verifies it to award you points!'}
           </p>
@@ -582,45 +592,59 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
                 </span>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-1.5">
                 <button
                   type="button"
                   onClick={() => {
                     setGameMode('coop');
+                    setTargetWins(8);
                     sounds.playDing();
                   }}
-                  className={`p-2 rounded-xl border text-left transition ${
+                  className={`p-2 rounded-xl border text-center transition ${
                     gameMode === 'coop'
                       ? 'bg-emerald-500/20 border-emerald-400 text-white shadow ring-1 ring-emerald-400'
                       : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  <div className="flex items-center gap-1 font-bold text-xs text-emerald-400">
-                    <span>🤝 Team Effort</span>
-                  </div>
-                  <div className="text-[10px] text-slate-300 leading-tight mt-0.5 truncate">
-                    Work together as a couple
-                  </div>
+                  <div className="text-base">🤝</div>
+                  <div className="font-bold text-[11px] text-emerald-400 leading-tight mt-0.5">Team Effort</div>
+                  <div className="text-[9px] text-slate-300 leading-tight mt-0.5">Co-Op Goal</div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => {
                     setGameMode('versus');
+                    setTargetWins(8);
                     sounds.playDing();
                   }}
-                  className={`p-2 rounded-xl border text-left transition ${
+                  className={`p-2 rounded-xl border text-center transition ${
                     gameMode === 'versus'
                       ? 'bg-amber-500/20 border-amber-400 text-white shadow ring-1 ring-amber-400'
                       : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  <div className="flex items-center gap-1 font-bold text-xs text-amber-400">
-                    <span>⚔️ Head-to-Head</span>
-                  </div>
-                  <div className="text-[10px] text-slate-300 leading-tight mt-0.5 truncate">
-                    Race against each other
-                  </div>
+                  <div className="text-base">⚔️</div>
+                  <div className="font-bold text-[11px] text-amber-400 leading-tight mt-0.5">Head-to-Head</div>
+                  <div className="text-[9px] text-slate-300 leading-tight mt-0.5">First to Goal</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGameMode('bingo');
+                    setTargetWins(1); // Default to 1 line
+                    sounds.playDing();
+                  }}
+                  className={`p-2 rounded-xl border text-center transition ${
+                    gameMode === 'bingo'
+                      ? 'bg-purple-500/20 border-purple-400 text-white shadow ring-1 ring-purple-400'
+                      : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="text-base">🎯</div>
+                  <div className="font-bold text-[11px] text-purple-400 leading-tight mt-0.5">Bingo Mode</div>
+                  <div className="text-[9px] text-slate-300 leading-tight mt-0.5">3x3 Grid Race</div>
                 </button>
               </div>
             )}
@@ -632,31 +656,61 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
-                {gameMode === 'coop' ? 'Team Target (Find Together)' : 'Win Condition (First Partner)'}
+                {gameMode === 'bingo' ? 'Bingo Target (Win Condition)' : gameMode === 'coop' ? 'Team Target (Find Together)' : 'Win Condition (First Partner)'}
               </label>
               <span className="text-xs font-bold text-amber-400">
-                {gameMode === 'coop' ? `Goal: ${targetWins} Items` : `First to ${targetWins}`}
+                {gameMode === 'bingo'
+                  ? (targetWins === 9 ? 'Full 9 Blackout' : `${targetWins} Line(s) to Win`)
+                  : gameMode === 'coop' ? `Goal: ${targetWins} Items` : `First to ${targetWins}`}
               </span>
             </div>
-            <div className="grid grid-cols-4 gap-1.5">
-              {[5, 8, 10, 12].map((num) => (
-                <button
-                  key={num}
-                  type="button"
-                  onClick={() => {
-                    setTargetWins(num);
-                    sounds.playDing();
-                  }}
-                  className={`py-1.5 rounded-lg text-xs font-bold border transition ${
-                    targetWins === num
-                      ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md font-extrabold'
-                      : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600'
-                  }`}
-                >
-                  {num} {gameMode === 'coop' ? 'Items' : 'Wins'}
-                </button>
-              ))}
-            </div>
+
+            {gameMode === 'bingo' ? (
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { num: 1, label: '1 Line', desc: 'Row/Col/Diag' },
+                  { num: 2, label: '2 Lines', desc: 'Double Bingo' },
+                  { num: 9, label: 'Blackout', desc: 'All 9 Squares' }
+                ].map((opt) => (
+                  <button
+                    key={opt.num}
+                    type="button"
+                    onClick={() => {
+                      setTargetWins(opt.num);
+                      sounds.playDing();
+                    }}
+                    className={`py-1.5 px-1.5 rounded-lg text-center border transition ${
+                      targetWins === opt.num
+                        ? 'bg-purple-500 text-white border-purple-400 shadow-md font-extrabold'
+                        : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600'
+                    }`}
+                  >
+                    <div className="text-xs font-black">{opt.label}</div>
+                    <div className="text-[9px] opacity-80">{opt.desc}</div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 gap-1.5">
+                {[5, 8, 10, 12].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => {
+                      setTargetWins(num);
+                      sounds.playDing();
+                    }}
+                    className={`py-1.5 rounded-lg text-xs font-bold border transition ${
+                      targetWins === num
+                        ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-md font-extrabold'
+                        : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600'
+                    }`}
+                  >
+                    {num} {gameMode === 'coop' ? 'Items' : 'Wins'}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

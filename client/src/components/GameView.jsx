@@ -33,7 +33,6 @@ export default function GameView({
   onClaimBingo
 }) {
   const [filter, setFilter] = useState('all');
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'bingo'
   const [showLogDrawer, setShowLogDrawer] = useState(false);
   const [showMenuModal, setShowMenuModal] = useState(false);
   const [showPowerupDrawer, setShowPowerupDrawer] = useState(false);
@@ -53,6 +52,7 @@ export default function GameView({
     setMuted(!muted);
   };
 
+  const isBingo = room?.gameMode === 'bingo';
   const isCoop = room?.gameMode === 'coop';
   const prompts = room?.prompts || [];
   const targetWins = room?.targetWins || 8;
@@ -119,15 +119,6 @@ export default function GameView({
 
   // 3x3 Bingo Calculations
   const bingoPrompts = prompts.slice(0, 9);
-  const isItemComplete = (p) => {
-    if (!p) return false;
-    const mySub = mySubmissions[p.id];
-    const oppSub = oppSubmissions[p.id];
-    if (isCoop) return mySub?.status === 'approved' || oppSub?.status === 'approved';
-    return mySub?.status === 'approved';
-  };
-
-  // Check lines in 3x3 grid
   const BINGO_LINES = [
     { name: 'Row 1', indices: [0, 1, 2] },
     { name: 'Row 2', indices: [3, 4, 5] },
@@ -139,11 +130,16 @@ export default function GameView({
     { name: 'Diagonal ↗', indices: [2, 4, 6] }
   ];
 
-  const unclaimedBingoLines = BINGO_LINES.filter((line) => {
-    const isCompleted = line.indices.every((idx) => bingoPrompts[idx] && isItemComplete(bingoPrompts[idx]));
-    const alreadyClaimed = room?.bingoClaims?.[`${player?.id}-${line.name}`];
-    return isCompleted && !alreadyClaimed;
-  });
+  const countLinesForSubs = (subs) => {
+    const isApproved = (idx) => {
+      const p = bingoPrompts[idx];
+      return p && subs[p.id]?.status === 'approved';
+    };
+    return BINGO_LINES.filter((line) => line.indices.every(isApproved)).length;
+  };
+
+  const myBingoLines = countLinesForSubs(mySubmissions);
+  const oppBingoLines = countLinesForSubs(oppSubmissions);
 
   return (
     <div className={`max-w-md mx-auto p-2.5 sm:p-3 pb-24 space-y-2.5 ${isSabotaged && myActiveSabotage.id === 'freeze' ? 'border-4 border-cyan-400 rounded-3xl shadow-[0_0_25px_rgba(34,211,238,0.5)]' : ''}`}>
@@ -159,29 +155,15 @@ export default function GameView({
           </span>
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-emerald-400 font-medium text-[11px]">
-            {isCoop ? `${teamVerifiedCount}/${targetWins}` : `Goal: ${targetWins}`}
+            {isBingo
+              ? (room.targetWins === 9 ? 'Goal: Blackout' : `Goal: ${room.targetWins} Line(s)`)
+              : isCoop
+              ? `${teamVerifiedCount}/${targetWins}`
+              : `Goal: ${targetWins}`}
           </span>
         </div>
 
         <div className="flex items-center gap-1.5">
-          {/* View Mode Toggle */}
-          <div className="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-[10px]">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-1 rounded ${viewMode === 'list' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
-              title="List View"
-            >
-              <List className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => setViewMode('bingo')}
-              className={`p-1 rounded ${viewMode === 'bingo' ? 'bg-amber-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'}`}
-              title="3x3 Bingo Grid View"
-            >
-              <Grid className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
           <button
             onClick={toggleMute}
             className="p-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition"
@@ -255,17 +237,6 @@ export default function GameView({
         </div>
       )}
 
-      {/* Claim Bingo Alert Banner */}
-      {unclaimedBingoLines.length > 0 && (
-        <button
-          onClick={() => onClaimBingo(unclaimedBingoLines[0].name)}
-          className="w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 text-slate-950 p-2.5 rounded-xl border-2 border-emerald-300 shadow-xl font-black text-xs flex items-center justify-center gap-2 animate-bounce transition active:scale-95"
-        >
-          <Sparkles className="w-4 h-4" />
-          <span>🎉 BINGO! Claim +300 Bonus Points ({unclaimedBingoLines[0].name})!</span>
-        </button>
-      )}
-
       {/* Road Trip Safety Banner */}
       {room.themeId === 'roadtrip' && (
         <div className="flex items-center gap-2 p-2 rounded-xl bg-cyan-950/50 border border-cyan-500/40 text-cyan-200 text-xs shadow-md">
@@ -276,8 +247,52 @@ export default function GameView({
         </div>
       )}
 
-      {/* Mode Scoreboard */}
-      {isCoop ? (
+      {/* Scoreboard: Bingo Mode vs Co-Op vs Head-to-Head */}
+      {isBingo ? (
+        /* Dedicated 3x3 Bingo Challenge Scoreboard */
+        <div className="bg-slate-800/90 backdrop-blur rounded-2xl border border-purple-500/40 p-3 shadow-lg space-y-2 relative overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-700/60 pb-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xl">🎯</span>
+              <div>
+                <span className="text-[9px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  3x3 Bingo Card Faceoff
+                </span>
+                <div className="font-extrabold text-white text-xs">
+                  {room.targetWins === 9 ? 'Full 9-Square Blackout Race!' : `First to Complete ${room.targetWins} Line(s)!`}
+                </div>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-xs font-black text-amber-400">
+                {myApprovedCount}/9 Marked
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-center text-xs">
+            <div className="bg-slate-900/70 border border-blue-500/40 rounded-xl p-2 space-y-0.5">
+              <span className="text-[9px] uppercase font-bold text-blue-300">You ({player.name})</span>
+              <div className="text-lg font-black text-amber-400">
+                {myBingoLines} <span className="text-[10px] text-slate-400 font-normal">lines</span>
+              </div>
+              <div className="text-[10px] font-semibold text-blue-400">
+                {myApprovedCount}/9 squares found
+              </div>
+            </div>
+
+            <div className="bg-slate-900/70 border border-pink-500/40 rounded-xl p-2 space-y-0.5">
+              <span className="text-[9px] uppercase font-bold text-pink-300">Partner ({opponent?.name || 'Partner'})</span>
+              <div className="text-lg font-black text-amber-400">
+                {oppBingoLines} <span className="text-[10px] text-slate-400 font-normal">lines</span>
+              </div>
+              <div className="text-[10px] font-semibold text-pink-400">
+                {oppApprovedCount}/9 squares found
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : isCoop ? (
         /* Couples Team Effort Scoreboard */
         <div className="bg-slate-800/90 backdrop-blur rounded-2xl border border-emerald-500/40 p-3 sm:p-3.5 shadow-lg space-y-2 relative overflow-hidden">
           <div className="flex items-center justify-between border-b border-slate-700/60 pb-2">
@@ -501,45 +516,54 @@ export default function GameView({
         </div>
       </div>
 
-      {/* 3x3 BINGO GRID VIEW OR LIST VIEW */}
-      {viewMode === 'bingo' ? (
-        /* 3x3 Bingo Grid View */
-        <div className="bg-slate-800/80 border border-amber-400/40 rounded-2xl p-3 space-y-2.5 shadow-xl">
-          <div className="flex items-center justify-between text-xs font-bold text-amber-300">
+      {/* DEDICATED 3x3 BINGO BOARD OR REGULAR CARD LIST */}
+      {isBingo ? (
+        /* Dedicated 3x3 Bingo Grid View */
+        <div className="bg-slate-800/90 border-2 border-purple-500/50 rounded-2xl p-3 space-y-2.5 shadow-xl">
+          <div className="flex items-center justify-between text-xs font-bold text-purple-300">
             <div className="flex items-center gap-1.5">
-              <Grid className="w-4 h-4 text-amber-400" />
-              <span>3x3 BINGO CARD CHALLENGE</span>
+              <Grid className="w-4 h-4 text-purple-400" />
+              <span>3x3 BINGO CHALLENGE BOARD</span>
             </div>
-            <span className="text-[10px] text-slate-400 font-normal">Complete any 3-in-a-row for +300 pts!</span>
+            <span className="text-[10px] text-purple-200/80 font-normal">
+              {room.targetWins === 9 ? 'Blackout: All 9 squares' : `Goal: Complete ${room.targetWins} Line(s)!`}
+            </span>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
             {bingoPrompts.map((prompt, idx) => {
               const mySub = mySubmissions[prompt.id];
               const oppSub = oppSubmissions[prompt.id];
-              const completed = isItemComplete(prompt);
+              const isMyDone = mySub?.status === 'approved';
+              const isOppDone = oppSub?.status === 'approved';
 
               return (
                 <div
                   key={prompt.id}
                   onClick={() => onOpenSnapModal(prompt)}
                   className={`aspect-square p-2 rounded-xl border flex flex-col items-center justify-between text-center cursor-pointer active:scale-95 transition relative overflow-hidden ${
-                    completed
-                      ? 'bg-emerald-950/70 border-emerald-400/80 text-emerald-200'
+                    isMyDone
+                      ? 'bg-blue-950/80 border-blue-400 shadow-md ring-1 ring-blue-400'
+                      : isOppDone
+                      ? 'bg-pink-950/70 border-pink-500/70'
                       : mySub?.status === 'pending'
-                      ? 'bg-amber-950/70 border-amber-400/80 text-amber-200'
-                      : 'bg-slate-900/80 border-slate-700 hover:border-slate-500'
+                      ? 'bg-amber-950/70 border-amber-400/80'
+                      : 'bg-slate-900/90 border-slate-700 hover:border-slate-500'
                   }`}
                 >
-                  <span className="text-2xl pt-1">{prompt.icon}</span>
+                  <span className="text-2xl pt-0.5">{prompt.icon}</span>
                   <span className="text-[10px] font-bold line-clamp-2 leading-tight text-white px-0.5">
                     {prompt.title}
                   </span>
                   <div className="w-full flex items-center justify-between text-[9px] font-black pt-1 border-t border-slate-700/50">
                     <span className="text-amber-400">+{prompt.points}</span>
-                    {completed ? (
-                      <span className="text-emerald-400 flex items-center gap-0.5">
-                        <CheckCircle2 className="w-3 h-3" />
+                    {isMyDone ? (
+                      <span className="text-blue-300 flex items-center gap-0.5 font-bold">
+                        <CheckCircle2 className="w-3 h-3 text-blue-400" /> You
+                      </span>
+                    ) : isOppDone ? (
+                      <span className="text-pink-300 flex items-center gap-0.5 font-bold">
+                        <CheckCircle2 className="w-3 h-3 text-pink-400" /> {opponent?.name ? opponent.name.slice(0, 4) : 'Part'}
                       </span>
                     ) : (
                       <span className="text-slate-500">#{idx + 1}</span>
@@ -551,7 +575,7 @@ export default function GameView({
           </div>
         </div>
       ) : (
-        /* Regular List View */
+        /* Regular Hunt Card List */
         <>
           {/* Filter Tabs & Custom Challenge Button */}
           <div className="flex items-center justify-between gap-2 pt-0.5">

@@ -289,6 +289,76 @@ async function testGameFlow() {
   await bingoPromise;
   console.log(`✅ 3x3 Bingo claimed and bonus points awarded (+300 pts)!`);
 
+  // Step 16: Test Dedicated BINGO GAME MODE Setup and Win Condition
+  const createBingoRoomRes = await new Promise((resolve) => {
+    socket1.emit('create_room', {
+      hostName: 'Bingo Host',
+      hostAvatar: '🎯',
+      targetWins: 1, // 1 Line to win
+      deckSize: 9,
+      gameMode: 'bingo',
+      themeId: 'supermarket'
+    }, resolve);
+  });
+  if (!createBingoRoomRes.success || createBingoRoomRes.room.gameMode !== 'bingo') {
+    throw new Error('Bingo Game Mode room creation failed');
+  }
+  const bingoRoomCode = createBingoRoomRes.roomCode;
+  const bingoP1Id = createBingoRoomRes.playerId;
+  console.log(`✅ Dedicated Bingo Mode Room Created: ${bingoRoomCode} (GameMode: ${createBingoRoomRes.room.gameMode}, Target: ${createBingoRoomRes.room.targetWins} Line, DeckSize: ${createBingoRoomRes.room.prompts.length})`);
+
+  // Join and start Bingo match
+  const joinBingoRes = await new Promise((resolve) => {
+    socket2.emit('join_room', {
+      roomCode: bingoRoomCode,
+      playerName: 'Bingo Challenger',
+      playerAvatar: '🦁'
+    }, resolve);
+  });
+  if (!joinBingoRes.success) throw new Error('Join bingo room failed');
+  const bingoP2Id = joinBingoRes.playerId;
+
+  const startBingoRes = await new Promise((resolve) => {
+    socket1.emit('start_game', { roomCode: bingoRoomCode, playerId: bingoP1Id }, resolve);
+  });
+  if (!startBingoRes.success || startBingoRes.room.prompts.length !== 9) {
+    throw new Error('Bingo match failed to start with exact 3x3 (9 items) grid');
+  }
+  console.log(`✅ Bingo Match Started with 3x3 (9 items) Grid! First to complete 1 line wins!`);
+
+  // Simulate completing Row 1 (items 0, 1, 2)
+  const bingoPrompts = startBingoRes.room.prompts;
+  for (let i = 0; i < 3; i++) {
+    const prompt = bingoPrompts[i];
+    await new Promise((resolve) => {
+      socket1.emit('submit_item', {
+        roomCode: bingoRoomCode,
+        playerId: bingoP1Id,
+        promptId: prompt.id,
+        photoUrl: `/uploads/bingo-item-${i}.jpg`,
+        caption: `Bingo item #${i+1}`
+      }, resolve);
+    });
+
+    const verifyRes = await new Promise((resolve) => {
+      socket2.emit('verify_item', {
+        roomCode: bingoRoomCode,
+        reviewerId: bingoP2Id,
+        targetPlayerId: bingoP1Id,
+        promptId: prompt.id,
+        approved: true,
+        feedback: 'Row 1 find verified!'
+      }, resolve);
+    });
+
+    if (i === 2) {
+      if (verifyRes.room.status !== 'completed' || verifyRes.room.winner.id !== bingoP1Id) {
+        throw new Error('Expected 1-line Bingo completion to trigger match win!');
+      }
+      console.log(`🏆 BINGO VICTORY TRIGGERED! Player 1 completed Row 1 (3-in-a-row) and won the match!`);
+    }
+  }
+
   socket1.disconnect();
   socket2.disconnect();
   console.log('🏆 ALL SCAVENGER HUNT TWISTS & THEMES PASSED WITH 100% SUCCESS!');
