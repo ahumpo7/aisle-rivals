@@ -1,4 +1,5 @@
 process.env.NO_TUNNEL = 'true';
+process.env.PORT = '3005';
 const { io } = require('./client/node_modules/socket.io-client');
 const http = require('http');
 
@@ -11,7 +12,7 @@ async function testGameFlow() {
   // Wait a moment for server to bind
   await new Promise((r) => setTimeout(r, 600));
 
-  const serverUrl = 'http://localhost:3000';
+  const serverUrl = 'http://localhost:3005';
 
   const socket1 = io(serverUrl);
   const socket2 = io(serverUrl);
@@ -21,7 +22,7 @@ async function testGameFlow() {
   console.log('✅ Both players connected via WebSocket');
 
   // Test all themes are available via API
-  const httpRes = await fetch('http://localhost:3000/api/themes');
+  const httpRes = await fetch('http://localhost:3005/api/themes');
   const themesJson = await httpRes.json();
   console.log(`✅ Themes endpoint returned ${themesJson.themes.length} themes:`, themesJson.themes.map(t => `${t.icon} ${t.shortName}`).join(', '));
   if (themesJson.themes.length < 5) throw new Error('Expected at least 5 themes');

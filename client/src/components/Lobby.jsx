@@ -21,6 +21,23 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
   const [joinUrl, setJoinUrl] = useState('');
   const [publicTunnelUrl, setPublicTunnelUrl] = useState('');
   const [showQrModal, setShowQrModal] = useState(false);
+  const [themeCounts, setThemeCounts] = useState({});
+
+  // Fetch dynamic theme counts from server API
+  useEffect(() => {
+    fetch('/api/themes')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.themes) {
+          const map = {};
+          data.themes.forEach((t) => {
+            map[t.id] = t.promptCount;
+          });
+          setThemeCounts(map);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Check URL query param for room code
   useEffect(() => {
@@ -465,12 +482,13 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
                 Choose Scavenger Hunt Theme
               </label>
               <span className="text-xs font-bold text-amber-400">
-                {THEME_LIST.find((t) => t.id === selectedTheme)?.shortName}
+                {THEME_LIST.find((t) => t.id === selectedTheme)?.shortName} ({themeCounts[selectedTheme] || THEME_LIST.find((t) => t.id === selectedTheme)?.itemCount} items)
               </span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {THEME_LIST.map((th) => {
                 const isSelected = selectedTheme === th.id;
+                const count = themeCounts[th.id] || th.itemCount;
                 return (
                   <button
                     key={th.id}
@@ -488,14 +506,22 @@ export default function Lobby({ room, player, onJoinSuccess, onLeaveRoom }) {
                         : 'bg-slate-800/70 border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-600'
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <div className="flex items-center gap-1.5 font-black text-sm text-white">
-                        <span className="text-xl">{th.icon}</span>
-                        <span>{th.name}</span>
+                    <div className="flex items-center justify-between gap-1.5 mb-1">
+                      <div className="flex items-center gap-1.5 font-black text-sm text-white min-w-0 pr-1">
+                        <span className="text-xl shrink-0">{th.icon}</span>
+                        <span className="truncate">{th.name}</span>
                       </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${th.badgeStyle}`}>
-                        {th.badge}
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${th.badgeStyle}`}>
+                          {th.badge}
+                        </span>
+                        <span
+                          className="text-[10px] font-mono font-black px-1.5 py-0.5 rounded-md bg-slate-950/90 text-amber-300 border border-amber-400/40 shadow-sm flex items-center justify-center min-w-[20px]"
+                          title={`${count} items in category`}
+                        >
+                          {count}
+                        </span>
+                      </div>
                     </div>
                     <div className="text-[11px] text-amber-300 font-semibold mb-1">
                       {th.subtitle}
